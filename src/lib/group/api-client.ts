@@ -1,4 +1,5 @@
 import type { GroupMode, GroupState, GroupStateResponse } from "@/lib/group/types";
+import type { CreateGroupResponse } from "@/lib/group/create-group-response";
 import {
   getGroupSessionToken,
   saveGroupSessionToken,
@@ -29,19 +30,21 @@ export async function createGroupRequest(input: {
   mode: GroupMode;
   clientId: string;
   displayName: string;
-}): Promise<GroupState> {
+}): Promise<CreateGroupResponse> {
   const res = await fetch("/api/groups", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
+    keepalive: true,
   });
 
   if (!res.ok) {
     throw new Error("Failed to create group");
   }
 
-  const data = (await res.json()) as GroupStateResponse;
-  return persistSession(data.group.id, data);
+  const data = (await res.json()) as CreateGroupResponse;
+  saveGroupSessionToken(data.groupId, data.sessionToken);
+  return data;
 }
 
 export async function fetchGroupState(

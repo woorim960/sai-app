@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ChevronRight, Loader2 } from "lucide-react";
 import type { Deck } from "@/lib/data";
 import type { GroupMode } from "@/lib/group/types";
-import { startPlayFromDeck } from "@/lib/group/start-play";
+import { useDeckPlayStart } from "@/lib/hooks/use-deck-play-start";
 import { cn } from "@/lib/utils";
 
 type DeckPlayActionsProps = {
@@ -21,6 +21,7 @@ type PlayActionButtonProps = {
   loading?: boolean;
   className?: string;
   onClick?: () => void;
+  onWarmStart?: () => void;
   children: React.ReactNode;
 };
 
@@ -29,6 +30,7 @@ function PlayActionButton({
   loading,
   className,
   onClick,
+  onWarmStart,
   children,
 }: PlayActionButtonProps) {
   return (
@@ -36,6 +38,9 @@ function PlayActionButton({
       type="button"
       disabled={disabled || loading}
       onClick={onClick}
+      onPointerEnter={onWarmStart}
+      onPointerDown={onWarmStart}
+      onFocus={onWarmStart}
       className={cn(
         actionBaseClass,
         (disabled || loading) && "opacity-60",
@@ -59,6 +64,10 @@ export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
   const [mounted, setMounted] = useState(false);
   const [startingMode, setStartingMode] = useState<GroupMode | null>(null);
   const [startError, setStartError] = useState("");
+  const { warmStart, startPlay } = useDeckPlayStart({
+    deckId: deck.id,
+    isLocked,
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -75,18 +84,18 @@ export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
         ? "이 덱의 카드가 아직 준비되지 않았어요."
         : null);
 
-  const handleStart = async (mode: GroupMode) => {
+  const handleStart = (mode: GroupMode) => {
     if (isLocked || startingMode) return;
 
     setStartingMode(mode);
     setStartError("");
 
-    try {
-      await startPlayFromDeck(deck.id, mode);
-    } catch {
-      setStartError("시작에 실패했어요. 다시 시도해주세요.");
-      setStartingMode(null);
-    }
+    void startPlay(mode).then((navigated) => {
+      if (!navigated) {
+        setStartError("시작에 실패했어요. 다시 시도해주세요.");
+        setStartingMode(null);
+      }
+    });
   };
 
   const asyncLoading = startingMode === "async";
@@ -125,7 +134,8 @@ export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
           <PlayActionButton
             disabled={isLocked}
             loading={asyncLoading}
-            onClick={() => void handleStart("async")}
+            onWarmStart={() => warmStart("async")}
+            onClick={() => handleStart("async")}
             className="bg-gradient-to-r from-sai-primary to-[#A99BFF] text-white shadow-[0_10px_28px_rgba(145,129,244,0.32)]"
           >
             <span className="flex size-12 shrink-0 items-center justify-center rounded-[16px] bg-white/20 text-[26px]">
@@ -148,7 +158,8 @@ export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
           <PlayActionButton
             disabled={isLocked}
             loading={syncLoading}
-            onClick={() => void handleStart("sync")}
+            onWarmStart={() => warmStart("sync")}
+            onClick={() => handleStart("sync")}
             className="border border-[#E5E1FA] bg-white text-sai-text shadow-[0_4px_18px_rgba(45,49,66,0.06)]"
           >
             <span className="flex size-12 shrink-0 items-center justify-center rounded-[16px] bg-accent text-[26px]">

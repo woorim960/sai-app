@@ -35,5 +35,10 @@ export async function POST(request: Request) {
 
   const sessionToken = createGroupSessionToken(state.group.id, body.clientId);
 
-  return groupJsonResponse({ ...state, sessionToken });
+  return groupJsonResponse({
+    groupId: state.group.id,
+    deckId: state.group.deckId,
+    mode: state.group.mode,
+    sessionToken,
+  });
 }
