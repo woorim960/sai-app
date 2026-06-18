@@ -4,14 +4,11 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 import type { GroupMode } from "@/lib/group/types";
 import {
+  clearPlayStartCache,
   getCachedPlayStart,
   prefetchPlayStart,
   resolvePlayStart,
 } from "@/lib/group/play-start-cache";
-import {
-  hidePlayNavigation,
-  showPlayNavigation,
-} from "@/lib/navigation/play-navigation-store";
 
 type UseDeckPlayStartOptions = {
   deckId: string;
@@ -22,14 +19,11 @@ export function useDeckPlayStart({ deckId, isLocked }: UseDeckPlayStartOptions) 
   const router = useRouter();
   const navigatingRef = useRef(false);
 
-  // 덱 상세 진입 후 두 모드 모두 선제 생성
   useEffect(() => {
     if (isLocked) return;
-    const timer = window.setTimeout(() => {
-      prefetchPlayStart(deckId, "async");
-      prefetchPlayStart(deckId, "sync");
-    }, 300);
-    return () => window.clearTimeout(timer);
+    prefetchPlayStart(deckId, "async");
+    prefetchPlayStart(deckId, "sync");
+    return () => clearPlayStartCache(deckId);
   }, [deckId, isLocked]);
 
   const warmStart = useCallback(
@@ -53,7 +47,6 @@ export function useDeckPlayStart({ deckId, isLocked }: UseDeckPlayStartOptions) 
       if (isLocked || navigatingRef.current) return false;
 
       navigatingRef.current = true;
-      showPlayNavigation(mode);
 
       const cached = getCachedPlayStart(deckId, mode);
       if (cached) {
@@ -66,7 +59,6 @@ export function useDeckPlayStart({ deckId, isLocked }: UseDeckPlayStartOptions) 
         navigateToPlay(ready.targetPath);
         return true;
       } catch {
-        hidePlayNavigation();
         navigatingRef.current = false;
         return false;
       }

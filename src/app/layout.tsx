@@ -5,7 +5,6 @@ import { AppBootstrap } from "@/components/layout/app-bootstrap";
 import { OnboardingCookieSync } from "@/components/layout/onboarding-cookie-sync";
 import { RouteHistoryTracker } from "@/components/layout/route-history-tracker";
 import { UserDataBootstrap } from "@/components/layout/user-data-bootstrap";
-import { PlayNavigationOverlay } from "@/components/layout/play-navigation-overlay";
 import { ServiceWorkerRegister } from "@/components/layout/service-worker-register";
 import "./globals.css";
 
@@ -75,7 +74,6 @@ export default function RootLayout({
         <RouteHistoryTracker />
         <UserDataBootstrap />
         {children}
-        <PlayNavigationOverlay />
         <ServiceWorkerRegister />
       </body>
     </html>

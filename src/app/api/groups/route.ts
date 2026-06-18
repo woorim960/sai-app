@@ -40,5 +40,6 @@ export async function POST(request: Request) {
     deckId: state.group.deckId,
     mode: state.group.mode,
     sessionToken,
+    initialState: state,
   });
 }

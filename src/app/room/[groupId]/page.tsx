@@ -1,30 +1,18 @@
-import { notFound } from "next/navigation";
-import { RoomLobbyScreen } from "@/components/group/room-lobby-screen";
-import { RouteFallback } from "@/components/layout/route-fallback";
-import { getPlayDeckById } from "@/lib/data/play-content";
-import { getGroupExpiredFallback } from "@/lib/group/group-access";
-import { loadActiveGroup } from "@/lib/group/load-group-state";
+import { RoomLobbyClientEntry } from "@/components/group/room-lobby-client-entry";
 
 type PageProps = {
   params: Promise<{ groupId: string }>;
+  searchParams: Promise<{ sid?: string; st?: string }>;
 };
 
-export default async function RoomPage({ params }: PageProps) {
+export default async function RoomPage({
+  params,
+  searchParams,
+}: PageProps) {
   const { groupId } = await params;
-  const result = await loadActiveGroup(groupId);
-
-  if (result.kind === "missing") notFound();
-  if (result.kind === "expired") {
-    return <RouteFallback {...getGroupExpiredFallback(result.deckId)} />;
-  }
-
-  const state = result.state;
-  if (state.group.mode !== "sync") notFound();
-
-  const deck = getPlayDeckById(state.group.deckId);
-  if (!deck) notFound();
+  const query = await searchParams;
 
   return (
-    <RoomLobbyScreen groupId={groupId} deck={deck} initialState={state} />
+    <RoomLobbyClientEntry groupId={groupId} sid={query.sid} st={query.st} />
   );
 }

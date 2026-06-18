@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
-import { GameplayPageSkeleton } from "@/components/gameplay/gameplay-page-skeleton";
 import { GameplayShell } from "@/components/gameplay/gameplay-shell";
 import {
   ParticipantAvatars,
@@ -32,7 +31,6 @@ import {
 import { useGroupStatePolling } from "@/lib/group/use-group-state-polling";
 import { notifyFriendJoined } from "@/lib/user-data";
 import { useGameplayNextHandler } from "@/lib/hooks/use-gameplay-next-handler";
-import { hidePlayNavigation } from "@/lib/navigation/play-navigation-store";
 import type { GroupState } from "@/lib/group/types";
 
 type GroupPlayPageProps = {
@@ -98,8 +96,6 @@ export function GroupPlayPage({
   });
 
   useLayoutEffect(() => {
-    hidePlayNavigation();
-
     if (clientReady) {
       clearPlayHandoff();
       return;
@@ -313,7 +309,7 @@ export function GroupPlayPage({
   );
 
   if (!canPlay || !currentCard) {
-    return <GameplayPageSkeleton />;
+    return null;
   }
 
   return (

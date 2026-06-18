@@ -6,6 +6,7 @@ import { ChevronRight, Loader2 } from "lucide-react";
 import type { Deck } from "@/lib/data";
 import type { GroupMode } from "@/lib/group/types";
 import { useDeckPlayStart } from "@/lib/hooks/use-deck-play-start";
+import { getCachedPlayStart } from "@/lib/group/play-start-cache";
 import { cn } from "@/lib/utils";
 
 type DeckPlayActionsProps = {
@@ -87,8 +88,9 @@ export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
   const handleStart = (mode: GroupMode) => {
     if (isLocked || startingMode) return;
 
-    setStartingMode(mode);
     setStartError("");
+    const isInstant = Boolean(getCachedPlayStart(deck.id, mode));
+    if (!isInstant) setStartingMode(mode);
 
     void startPlay(mode).then((navigated) => {
       if (!navigated) {
@@ -98,8 +100,8 @@ export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
     });
   };
 
-  const asyncBusy = startingMode === "async";
-  const syncBusy = startingMode === "sync";
+  const asyncLoading = startingMode === "async";
+  const syncLoading = startingMode === "sync";
 
   return (
     <>
@@ -132,7 +134,8 @@ export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
 
         <div className="mt-4 space-y-3">
           <PlayActionButton
-            disabled={isLocked || asyncBusy}
+            disabled={isLocked}
+            loading={asyncLoading}
             onWarmStart={() => warmStart("async")}
             onClick={() => handleStart("async")}
             className="bg-gradient-to-r from-sai-primary to-[#A99BFF] text-white shadow-[0_10px_28px_rgba(145,129,244,0.32)]"
@@ -155,7 +158,8 @@ export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
           </PlayActionButton>
 
           <PlayActionButton
-            disabled={isLocked || syncBusy}
+            disabled={isLocked}
+            loading={syncLoading}
             onWarmStart={() => warmStart("sync")}
             onClick={() => handleStart("sync")}
             className="border border-[#E5E1FA] bg-white text-sai-text shadow-[0_4px_18px_rgba(45,49,66,0.06)]"

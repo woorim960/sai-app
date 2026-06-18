@@ -1,6 +1,6 @@
 "use client";
 
-import type { GroupMode } from "@/lib/group/types";
+import type { GroupMode, GroupState } from "@/lib/group/types";
 
 const HANDOFF_KEY = "sai_play_handoff";
 
@@ -11,6 +11,7 @@ export type PlayHandoff = {
   clientId: string;
   sessionToken: string;
   targetPath: string;
+  initialState: GroupState;
   createdAt: number;
 };
 
@@ -25,10 +26,11 @@ export function readPlayHandoff(): PlayHandoff | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as PlayHandoff;
-    if (Date.now() - parsed.createdAt > 60_000) {
+    if (Date.now() - parsed.createdAt > 120_000) {
       sessionStorage.removeItem(HANDOFF_KEY);
       return null;
     }
+    if (!parsed.initialState?.group?.id) return null;
     return parsed;
   } catch {
     return null;

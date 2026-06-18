@@ -89,6 +89,7 @@ async function createPlaySession(
     clientId,
     sessionToken: data.sessionToken,
     targetPath,
+    initialState: data.initialState,
     createdAt: Date.now(),
   });
 

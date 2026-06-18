@@ -27,7 +27,6 @@ import { useGroupStatePolling } from "@/lib/group/use-group-state-polling";
 import { markDeckCompleted } from "@/lib/storage";
 import { recordCoupleSessionIfPaired } from "@/lib/couple/record-session";
 import { useGameplayNextHandler } from "@/lib/hooks/use-gameplay-next-handler";
-import { hidePlayNavigation } from "@/lib/navigation/play-navigation-store";
 import type { GroupState } from "@/lib/group/types";
 
 type SyncPlayPageProps = {
@@ -53,10 +52,6 @@ export function SyncPlayPage({
   const isTypingRef = useRef(false);
   const answersRef = useRef(state.answers);
   answersRef.current = state.answers;
-
-  useLayoutEffect(() => {
-    hidePlayNavigation();
-  }, []);
 
   const isHost = clientId ? state.group.hostClientId === clientId : false;
   const currentIndex = state.group.currentCardIndex;
