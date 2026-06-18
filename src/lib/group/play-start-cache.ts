@@ -12,6 +12,7 @@ import {
 } from "@/lib/cookies";
 import { createGroupRequest } from "@/lib/group/api-client";
 import type { CreateGroupResponse } from "@/lib/group/create-group-response";
+import { savePlayHandoff } from "@/lib/group/play-handoff";
 import { saveGroupSessionToken } from "@/lib/group/session-storage";
 import type { GroupMode } from "@/lib/group/types";
 
@@ -24,6 +25,7 @@ export type PlayStartReady = {
 
 type CacheEntry = {
   promise: Promise<PlayStartReady>;
+  ready?: PlayStartReady;
   createdAt: number;
 };
 
@@ -73,15 +75,35 @@ async function createPlaySession(
 
   persistPlaySession(data.groupId, clientId, data.sessionToken);
 
+  const targetPath = buildTargetPath(
+    data.groupId,
+    mode,
+    clientId,
+    data.sessionToken
+  );
+
+  savePlayHandoff({
+    groupId: data.groupId,
+    deckId,
+    mode,
+    clientId,
+    sessionToken: data.sessionToken,
+    targetPath,
+    createdAt: Date.now(),
+  });
+
   return {
     groupId: data.groupId,
-    targetPath: buildTargetPath(
-      data.groupId,
-      mode,
-      clientId,
-      data.sessionToken
-    ),
+    targetPath,
   };
+}
+
+function trackReady(key: string, promise: Promise<PlayStartReady>): Promise<PlayStartReady> {
+  return promise.then((ready) => {
+    const entry = cache.get(key);
+    if (entry) entry.ready = ready;
+    return ready;
+  });
 }
 
 function isFresh(entry: CacheEntry): boolean {
@@ -94,10 +116,22 @@ export function prefetchPlayStart(deckId: string, mode: GroupMode): void {
   const existing = cache.get(key);
   if (existing && isFresh(existing)) return;
 
+  const promise = trackReady(key, createPlaySession(deckId, mode));
   cache.set(key, {
     createdAt: Date.now(),
-    promise: createPlaySession(deckId, mode),
+    promise,
   });
+}
+
+/** prefetch 완료 시 클릭 즉시 이동 (await 없음) */
+export function getCachedPlayStart(
+  deckId: string,
+  mode: GroupMode
+): PlayStartReady | null {
+  const key = cacheKey(deckId, mode);
+  const entry = cache.get(key);
+  if (!entry || !isFresh(entry) || !entry.ready) return null;
+  return entry.ready;
 }
 
 export async function resolvePlayStart(

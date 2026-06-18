@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Sparkles, Users } from "lucide-react";
 import { MobileShell } from "@/components/layout/mobile-shell";
@@ -13,6 +13,7 @@ import { startSyncGroupRequest } from "@/lib/group/api-client";
 import { canStartSyncLobby } from "@/lib/group/sync-card-progress";
 import { useGroupStatePolling } from "@/lib/group/use-group-state-polling";
 import { notifyFriendJoined } from "@/lib/user-data";
+import { hidePlayNavigation } from "@/lib/navigation/play-navigation-store";
 import type { GroupState } from "@/lib/group/types";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +46,10 @@ export function RoomLobbyScreen({
   const isHost = clientId ? state.group.hostClientId === clientId : false;
   const canStart = canStartSyncLobby(state);
   const waitingForFriend = state.participants.length < 2;
+
+  useLayoutEffect(() => {
+    hidePlayNavigation();
+  }, []);
 
   useEffect(() => {
     if (state.participants.length >= 2) {

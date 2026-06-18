@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { GameplayPageSkeleton } from "@/components/gameplay/gameplay-page-skeleton";
 import { GameplayShell } from "@/components/gameplay/gameplay-shell";
 import {
   ParticipantAvatars,
@@ -15,6 +16,11 @@ import {
 } from "@/lib/group/group-play-next";
 import { advanceAsyncPlayRequest } from "@/lib/group/api-client";
 import { resolvePlayClientId } from "@/lib/group/resolve-play-session";
+import {
+  applyImmediatePlayClient,
+  peekImmediatePlayClient,
+} from "@/lib/group/resolve-immediate-play-client";
+import { clearPlayHandoff } from "@/lib/group/play-handoff";
 import type { PlayBootstrap } from "@/lib/group/play-bootstrap";
 import { syncPlaySessionFromUrl } from "@/lib/group/sync-play-session";
 import { getParticipant } from "@/lib/group/result-helpers";
@@ -26,6 +32,7 @@ import {
 import { useGroupStatePolling } from "@/lib/group/use-group-state-polling";
 import { notifyFriendJoined } from "@/lib/user-data";
 import { useGameplayNextHandler } from "@/lib/hooks/use-gameplay-next-handler";
+import { hidePlayNavigation } from "@/lib/navigation/play-navigation-store";
 import type { GroupState } from "@/lib/group/types";
 
 type GroupPlayPageProps = {
@@ -52,10 +59,15 @@ export function GroupPlayPage({
   );
 
   const hasServerSession = Boolean(bootstrap?.sessionReady);
+  const immediateClient = peekImmediatePlayClient(groupId, bootstrap);
 
   const [state, setState] = useState(initialState);
-  const [clientId, setClientIdState] = useState(bootstrap?.clientId ?? "");
-  const [clientReady, setClientReady] = useState(false);
+  const [clientId, setClientIdState] = useState(
+    immediateClient.clientId || bootstrap?.clientId || ""
+  );
+  const [clientReady, setClientReady] = useState(
+    hasServerSession || immediateClient.ready
+  );
   const [currentIndex, setCurrentIndex] = useState(
     bootstrap?.initialProgressIndex ?? 0
   );
@@ -84,6 +96,22 @@ export function GroupPlayPage({
       }
     },
   });
+
+  useLayoutEffect(() => {
+    hidePlayNavigation();
+
+    if (clientReady) {
+      clearPlayHandoff();
+      return;
+    }
+
+    const immediate = applyImmediatePlayClient(groupId, bootstrap);
+    if (immediate.ready) {
+      setClientIdState(immediate.clientId);
+      setClientReady(true);
+      clearPlayHandoff();
+    }
+  }, [bootstrap, clientReady, groupId]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -285,11 +313,7 @@ export function GroupPlayPage({
   );
 
   if (!canPlay || !currentCard) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center px-6 text-center text-[15px] text-sai-text-secondary">
-        준비 중...
-      </div>
-    );
+    return <GameplayPageSkeleton />;
   }
 
   return (
