@@ -10,6 +10,33 @@ export type AuthResult =
   | { ok: true; payload: GroupSessionPayload; state: GroupState }
   | { ok: false; status: number; error: string };
 
+export type TokenAuthResult =
+  | { ok: true; payload: GroupSessionPayload }
+  | { ok: false; status: number; error: string };
+
+/** JWT만 검증 — DB 조회 없음 (고빈도 write API용) */
+export function requireGroupToken(
+  request: Request,
+  groupId: string,
+  options?: { fallbackToken?: string | null }
+): TokenAuthResult {
+  const token = resolveGroupSessionToken(
+    request,
+    groupId,
+    options?.fallbackToken
+  );
+  if (!token) {
+    return { ok: false, status: 401, error: "Unauthorized" };
+  }
+
+  const payload = verifyGroupSessionToken(token, groupId);
+  if (!payload) {
+    return { ok: false, status: 401, error: "Invalid session" };
+  }
+
+  return { ok: true, payload };
+}
+
 export async function requireGroupSession(
   request: Request,
   groupId: string,

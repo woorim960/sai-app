@@ -1,4 +1,4 @@
-import { requireGroupSession } from "@/lib/group/api-auth";
+import { requireGroupToken } from "@/lib/group/api-auth";
 import { groupErrorResponse, groupJsonResponse } from "@/lib/group/api-response";
 import { getGroupRepository } from "@/lib/group/index";
 
@@ -26,8 +26,7 @@ export async function POST(request: Request, context: RouteContext) {
     return groupErrorResponse("Invalid request", 400);
   }
 
-  const repo = getGroupRepository();
-  const auth = await requireGroupSession(request, groupId, repo);
+  const auth = requireGroupToken(request, groupId);
   if (!auth.ok) {
     return groupErrorResponse(auth.error, auth.status);
   }
@@ -36,14 +35,11 @@ export async function POST(request: Request, context: RouteContext) {
     return groupErrorResponse("Forbidden", 403);
   }
 
-  if (auth.state.group.mode !== "async") {
-    return groupErrorResponse("Async only", 400);
-  }
-
   if (body.cardType === "balance" && !body.selectedOption) {
     return groupErrorResponse("Selection required", 400);
   }
 
+  const repo = getGroupRepository();
   const advanced = await repo.advanceAsyncParticipant({
     groupId,
     clientId: body.clientId,

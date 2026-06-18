@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { GameplayShell } from "@/components/gameplay/gameplay-shell";
 import {
   ParticipantAvatars,
@@ -13,6 +13,7 @@ import {
   buildAdvanceAsyncInput,
   runAdvanceAsyncPlay,
 } from "@/lib/group/group-play-next";
+import { advanceAsyncPlayRequest } from "@/lib/group/api-client";
 import { resolvePlayClientId } from "@/lib/group/resolve-play-session";
 import type { PlayBootstrap } from "@/lib/group/play-bootstrap";
 import { syncPlaySessionFromUrl } from "@/lib/group/sync-play-session";
@@ -45,6 +46,7 @@ export function GroupPlayPage({
   bootstrap,
 }: GroupPlayPageProps) {
   const initializedRef = useRef(false);
+  const advanceInFlightRef = useRef(false);
   const knownParticipantsRef = useRef(
     new Set(initialState.participants.map((item) => item.clientId))
   );
@@ -60,6 +62,7 @@ export function GroupPlayPage({
   const [selectedOption, setSelectedOption] = useState<"A" | "B" | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [, startCardTransition] = useTransition();
 
   const canPlay = hasServerSession || clientReady;
   const currentCard = cards[currentIndex];
@@ -166,10 +169,10 @@ export function GroupPlayPage({
     });
   }, [canPlay, clientId, groupId, deck.id, deck.title, currentIndex, cards.length]);
 
-  const handleNext = async () => {
+  const handleNext = () => {
     const effectiveClientId =
       clientId || resolvePlayClientId(groupId) || bootstrap?.clientId || "";
-    if (!effectiveClientId || !currentCard || submitting) return;
+    if (!effectiveClientId || !currentCard || advanceInFlightRef.current) return;
 
     const effectiveSelection =
       isBalance && currentCard
@@ -191,25 +194,81 @@ export function GroupPlayPage({
     });
     if (!advanceInput) return;
 
-    setSubmitting(true);
     setError("");
 
-    try {
-      const outcome = await runAdvanceAsyncPlay(advanceInput);
-      if (outcome.kind === "next") {
-        setCurrentIndex(outcome.nextIndex);
-        setSelectedOption(null);
+    // 마지막 카드(결과)만 서버 응답 대기 — 중간 카드는 즉시 전환
+    if (isLast) {
+      advanceInFlightRef.current = true;
+      setSubmitting(true);
+      void runAdvanceAsyncPlay(advanceInput)
+        .catch(() => {
+          setError("저장에 실패했어요. 다시 시도해주세요.");
+        })
+        .finally(() => {
+          advanceInFlightRef.current = false;
+          setSubmitting(false);
+        });
+      return;
+    }
+
+    const nextIndex = currentIndex + 1;
+    const rollback = { index: currentIndex, selection: selectedOption };
+
+    startCardTransition(() => {
+      setCurrentIndex(nextIndex);
+      setSelectedOption(null);
+    });
+    window.history.replaceState(
+      null,
+      "",
+      `/group/${groupId}/play?i=${nextIndex}`
+    );
+
+    advanceInFlightRef.current = true;
+    void advanceAsyncPlayRequest({
+      groupId: advanceInput.groupId,
+      clientId: advanceInput.clientId,
+      cardId: advanceInput.cardId,
+      cardType: advanceInput.cardType,
+      cardIndex: advanceInput.currentIndex,
+      totalCards: advanceInput.totalCards,
+      selectedOption: effectiveSelection ?? undefined,
+      selectedLabel:
+        effectiveSelection === "A"
+          ? advanceInput.optionA
+          : effectiveSelection === "B"
+            ? advanceInput.optionB
+            : undefined,
+    })
+      .then((outcome) => {
+        if (!outcome.ok) {
+          startCardTransition(() => {
+            setCurrentIndex(rollback.index);
+            setSelectedOption(rollback.selection);
+          });
+          window.history.replaceState(
+            null,
+            "",
+            `/group/${groupId}/play?i=${rollback.index}`
+          );
+          setError("저장에 실패했어요. 다시 시도해주세요.");
+        }
+      })
+      .catch(() => {
+        startCardTransition(() => {
+          setCurrentIndex(rollback.index);
+          setSelectedOption(rollback.selection);
+        });
         window.history.replaceState(
           null,
           "",
-          `/group/${groupId}/play?i=${outcome.nextIndex}`
+          `/group/${groupId}/play?i=${rollback.index}`
         );
-      }
-      setSubmitting(false);
-    } catch {
-      setError("저장에 실패했어요. 다시 시도해주세요.");
-      setSubmitting(false);
-    }
+        setError("저장에 실패했어요. 다시 시도해주세요.");
+      })
+      .finally(() => {
+        advanceInFlightRef.current = false;
+      });
   };
 
   useGameplayNextHandler(() => {
@@ -245,11 +304,11 @@ export function GroupPlayPage({
         currentIndex={currentIndex}
         selectedOption={selectedOption}
         onSelectOption={setSelectedOption}
-        onNext={() => void handleNext()}
+        onNext={handleNext}
         backHref={`/decks/${deck.id}`}
         backConfirmMessage="진행 중인 대화가 저장됩니다. 나가시겠어요?"
         isLast={isLast}
-        nextBlocked={submitting}
+        nextBlocked={isLast && submitting}
         title={deck.title}
         asyncPlayMeta={{
           groupId,

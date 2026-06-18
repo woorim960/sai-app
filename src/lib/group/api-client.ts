@@ -177,6 +177,7 @@ export async function advanceAsyncPlayRequest(input: {
     method: "POST",
     headers: jsonHeaders(input.groupId),
     body: JSON.stringify(input),
+    keepalive: true,
   });
 
   if (!res.ok) {
