@@ -271,9 +271,9 @@ export function SyncPlayPage({
         return;
       }
 
-      await advanceSyncCardRequest(groupId, clientId);
-      window.location.assign(`/room/${groupId}/play`);
-      return;
+      const next = await advanceSyncCardRequest(groupId, clientId);
+      setState(next);
+      setSelectedOption(null);
     } finally {
       setSubmitting(false);
     }

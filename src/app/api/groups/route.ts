@@ -1,4 +1,4 @@
-import { getRepository } from "@/lib/api";
+import { hasPlayDeckCards, getPlayDeckById } from "@/lib/data/play-content";
 import { groupErrorResponse, groupJsonResponse } from "@/lib/group/api-response";
 import { getGroupRepository } from "@/lib/group/index";
 import { createGroupSessionToken } from "@/lib/group/session";
@@ -16,13 +16,12 @@ export async function POST(request: Request) {
     return groupErrorResponse("Invalid request", 400);
   }
 
-  const deck = await getRepository().getDeckById(body.deckId);
+  const deck = getPlayDeckById(body.deckId);
   if (!deck) {
     return groupErrorResponse("Deck not found", 404);
   }
 
-  const cards = await getRepository().getCardsByDeckId(body.deckId);
-  if (cards.length === 0) {
+  if (!hasPlayDeckCards(body.deckId)) {
     return groupErrorResponse("Deck has no cards", 400);
   }
 

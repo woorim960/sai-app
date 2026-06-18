@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
 import type { Deck } from "@/lib/data";
 import type { GroupMode } from "@/lib/group/types";
+import { startPlayFromDeck } from "@/lib/group/start-play";
 import { cn } from "@/lib/utils";
 
 type DeckPlayActionsProps = {
@@ -12,62 +13,84 @@ type DeckPlayActionsProps = {
   isLocked: boolean;
 };
 
-function buildStartHref(deckId: string, mode: GroupMode): string {
-  const params = new URLSearchParams({ deckId, mode });
-  return `/api/play/start?${params.toString()}`;
-}
-
 const actionBaseClass =
   "flex w-full items-center gap-4 rounded-[20px] px-5 py-4 text-left transition-all active:scale-[0.99] touch-manipulation";
 
-type PlayActionAnchorProps = {
-  href: string;
+type PlayActionButtonProps = {
   disabled?: boolean;
+  loading?: boolean;
   className?: string;
+  onClick?: () => void;
   children: React.ReactNode;
 };
 
-/** API 라우트는 <a>로 전체 페이지 이동 — Next.js Link는 리다이렉트를 따르지 않음 */
-function PlayActionAnchor({
-  href,
+function PlayActionButton({
   disabled,
+  loading,
   className,
+  onClick,
   children,
-}: PlayActionAnchorProps) {
-  if (disabled) {
-    return (
-      <div aria-disabled className={cn(actionBaseClass, "opacity-60", className)}>
-        {children}
-      </div>
-    );
-  }
-
+}: PlayActionButtonProps) {
   return (
-    <a href={href} className={cn(actionBaseClass, className)}>
-      {children}
-    </a>
+    <button
+      type="button"
+      disabled={disabled || loading}
+      onClick={onClick}
+      className={cn(
+        actionBaseClass,
+        (disabled || loading) && "opacity-60",
+        className
+      )}
+    >
+      {loading ? (
+        <span className="flex w-full items-center justify-center gap-2 py-1">
+          <Loader2 className="size-5 animate-spin" />
+          <span className="text-[14px] font-medium">시작하는 중...</span>
+        </span>
+      ) : (
+        children
+      )}
+    </button>
   );
 }
 
 export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
   const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
+  const [startingMode, setStartingMode] = useState<GroupMode | null>(null);
+  const [startError, setStartError] = useState("");
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const asyncHref = useMemo(() => buildStartHref(deck.id, "async"), [deck.id]);
-  const syncHref = useMemo(() => buildStartHref(deck.id, "sync"), [deck.id]);
   const unlockHref = `/api/decks/${deck.id}/unlock`;
 
   const errorCode = mounted ? searchParams.get("error") : null;
   const errorMessage =
-    errorCode === "start_failed"
+    startError ||
+    (errorCode === "start_failed"
       ? "시작에 실패했어요. 다시 시도해주세요."
       : errorCode === "no_cards"
         ? "이 덱의 카드가 아직 준비되지 않았어요."
-        : null;
+        : null);
+
+  const handleStart = async (mode: GroupMode) => {
+    if (isLocked || startingMode) return;
+
+    setStartingMode(mode);
+    setStartError("");
+
+    try {
+      await startPlayFromDeck(deck.id, mode);
+    } catch {
+      setStartError("시작에 실패했어요. 다시 시도해주세요.");
+      setStartingMode(null);
+    }
+  };
+
+  const asyncLoading = startingMode === "async";
+  const syncLoading = startingMode === "sync";
 
   return (
     <>
@@ -99,9 +122,10 @@ export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
         </p>
 
         <div className="mt-4 space-y-3">
-          <PlayActionAnchor
-            href={asyncHref}
+          <PlayActionButton
             disabled={isLocked}
+            loading={asyncLoading}
+            onClick={() => void handleStart("async")}
             className="bg-gradient-to-r from-sai-primary to-[#A99BFF] text-white shadow-[0_10px_28px_rgba(145,129,244,0.32)]"
           >
             <span className="flex size-12 shrink-0 items-center justify-center rounded-[16px] bg-white/20 text-[26px]">
@@ -119,11 +143,12 @@ export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
               </span>
             </span>
             <ChevronRight className="size-5 shrink-0 text-white/90" strokeWidth={2.4} />
-          </PlayActionAnchor>
+          </PlayActionButton>
 
-          <PlayActionAnchor
-            href={syncHref}
+          <PlayActionButton
             disabled={isLocked}
+            loading={syncLoading}
+            onClick={() => void handleStart("sync")}
             className="border border-[#E5E1FA] bg-white text-sai-text shadow-[0_4px_18px_rgba(45,49,66,0.06)]"
           >
             <span className="flex size-12 shrink-0 items-center justify-center rounded-[16px] bg-accent text-[26px]">
@@ -141,7 +166,7 @@ export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
               className="size-5 shrink-0 text-sai-primary"
               strokeWidth={2.4}
             />
-          </PlayActionAnchor>
+          </PlayActionButton>
         </div>
       </div>
     </>

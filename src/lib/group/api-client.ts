@@ -157,3 +157,31 @@ export async function updateProgressRequest(
   if (!res.ok) throw new Error("Failed to update progress");
   return res.json() as Promise<GroupState>;
 }
+
+export type AdvanceAsyncPlayResult =
+  | { ok: true; kind: "next"; nextIndex: number }
+  | { ok: true; kind: "complete" }
+  | { ok: false };
+
+export async function advanceAsyncPlayRequest(input: {
+  groupId: string;
+  clientId: string;
+  cardId: string;
+  cardType: "balance" | "question";
+  cardIndex: number;
+  totalCards: number;
+  selectedOption?: "A" | "B";
+  selectedLabel?: string;
+}): Promise<AdvanceAsyncPlayResult> {
+  const res = await fetch(`/api/groups/${input.groupId}/advance-play`, {
+    method: "POST",
+    headers: jsonHeaders(input.groupId),
+    body: JSON.stringify(input),
+  });
+
+  if (!res.ok) {
+    return { ok: false };
+  }
+
+  return res.json() as Promise<AdvanceAsyncPlayResult>;
+}

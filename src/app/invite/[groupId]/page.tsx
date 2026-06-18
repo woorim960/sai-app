@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { JoinScreen } from "@/components/group/join-screen";
 import { RouteFallback } from "@/components/layout/route-fallback";
-import { getRepository } from "@/lib/api";
+import { getPlayDeckById } from "@/lib/data/play-content";
 import { getGroupExpiredFallback } from "@/lib/group/group-access";
 import { loadActiveGroup } from "@/lib/group/load-group-state";
 import { buildGroupInviteMetadata } from "@/lib/page-metadata";
@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const result = await loadActiveGroup(groupId);
   if (result.kind !== "ok") return { title: "초대 | 사이" };
 
-  const deck = await getRepository().getDeckById(result.state.group.deckId);
+  const deck = getPlayDeckById(result.state.group.deckId);
   if (!deck) return { title: "초대 | 사이" };
 
   return buildGroupInviteMetadata(deck);
@@ -32,7 +32,7 @@ export default async function InvitePage({ params }: PageProps) {
   }
 
   const state = result.state;
-  const deck = await getRepository().getDeckById(state.group.deckId);
+  const deck = getPlayDeckById(state.group.deckId);
   if (!deck) notFound();
 
   const isAsync = state.group.mode === "async";

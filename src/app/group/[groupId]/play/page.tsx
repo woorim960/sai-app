@@ -3,9 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import { GroupPlayPage } from "@/components/group/group-play-page";
 import { RouteFallback } from "@/components/layout/route-fallback";
 import {
-  getCardsByDeckIdCached,
-  getDeckByIdCached,
-} from "@/lib/api/cached-data";
+  getPlayCardsByDeckId,
+  getPlayDeckById,
+} from "@/lib/data/play-content";
 import { getPlayAccessFallback } from "@/lib/deck-access";
 import { CLIENT_ID_COOKIE, groupSessionCookieName } from "@/lib/cookies";
 import { getGroupExpiredFallback } from "@/lib/group/group-access";
@@ -33,10 +33,8 @@ export default async function GroupPlayRoute({
   const state = result.state;
   if (state.group.mode !== "async") notFound();
 
-  const [deck, cards] = await Promise.all([
-    getDeckByIdCached(state.group.deckId),
-    getCardsByDeckIdCached(state.group.deckId),
-  ]);
+  const deck = getPlayDeckById(state.group.deckId);
+  const cards = getPlayCardsByDeckId(state.group.deckId);
 
   if (!deck) notFound();
 

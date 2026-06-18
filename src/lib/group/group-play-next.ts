@@ -3,6 +3,7 @@ import { resolvePlayClientId } from "@/lib/group/resolve-play-session";
 import {
   advanceAsyncGroupPlay,
   type AdvanceAsyncPlayInput,
+  type AdvanceAsyncPlayOutcome,
 } from "@/lib/group/advance-async-play";
 import type { Card, Deck } from "@/lib/data";
 import type { PlayBootstrap } from "@/lib/group/play-bootstrap";
@@ -51,6 +52,6 @@ export function buildAdvanceAsyncInput(input: {
 
 export async function runAdvanceAsyncPlay(
   input: AdvanceAsyncPlayInput
-): Promise<void> {
-  await advanceAsyncGroupPlay(input);
+): Promise<AdvanceAsyncPlayOutcome> {
+  return advanceAsyncGroupPlay(input);
 }

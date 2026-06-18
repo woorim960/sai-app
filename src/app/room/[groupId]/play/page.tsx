@@ -2,9 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import { SyncPlayPage } from "@/components/group/sync-play-page";
 import { RouteFallback } from "@/components/layout/route-fallback";
 import {
-  getCardsByDeckIdCached,
-  getDeckByIdCached,
-} from "@/lib/api/cached-data";
+  getPlayCardsByDeckId,
+  getPlayDeckById,
+} from "@/lib/data/play-content";
 import { getGroupExpiredFallback } from "@/lib/group/group-access";
 import { loadActiveGroup } from "@/lib/group/load-group-state";
 
@@ -32,10 +32,8 @@ export default async function RoomPlayPage({ params }: PageProps) {
     redirect(`/room/${groupId}/result`);
   }
 
-  const [deck, cards] = await Promise.all([
-    getDeckByIdCached(state.group.deckId),
-    getCardsByDeckIdCached(state.group.deckId),
-  ]);
+  const deck = getPlayDeckById(state.group.deckId);
+  const cards = getPlayCardsByDeckId(state.group.deckId);
 
   if (!deck) notFound();
 

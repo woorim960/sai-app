@@ -1,5 +1,4 @@
 import { MobileShell } from "@/components/layout/mobile-shell";
-import { AdvanceNextLink } from "@/components/gameplay/advance-next-link";
 import { GameplayBackLink } from "@/components/gameplay/gameplay-back-link";
 import { GameplayNextButton } from "@/components/gameplay/gameplay-next-button";
 import { ProgressBar } from "@/components/gameplay/progress-bar";
@@ -37,7 +36,7 @@ export function GameplayShell({
   currentIndex,
   selectedOption,
   onSelectOption,
-  onNext: _onNext,
+  onNext,
   backHref,
   backConfirmMessage,
   isLast,
@@ -121,29 +120,14 @@ export function GameplayShell({
             <div className="flex justify-center">{participantsSlot}</div>
           )}
           {footerHint}
-          {showNextButton &&
-            (asyncPlayMeta ? (
-              <AdvanceNextLink
-                payload={{
-                  groupId: asyncPlayMeta.groupId,
-                  cardIndex: currentIndex,
-                  totalCards,
-                  cardId: currentCard.id,
-                  cardType: currentCard.type,
-                  optionA: currentCard.optionA,
-                  optionB: currentCard.optionB,
-                }}
-                isLast={isLast}
-                blocked={nextBlocked}
-                balanceRequired={isBalance}
-              />
-            ) : (
-              <GameplayNextButton
-                isLast={isLast}
-                blocked={nextBlocked}
-                balanceRequired={isBalance}
-              />
-            ))}
+          {showNextButton && (
+            <GameplayNextButton
+              isLast={isLast}
+              blocked={nextBlocked}
+              balanceRequired={isBalance}
+              onNext={onNext}
+            />
+          )}
         </footer>
       </div>
     </MobileShell>

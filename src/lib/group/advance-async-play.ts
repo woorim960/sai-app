@@ -1,11 +1,7 @@
 import { balanceGroupName, readBalanceSelection } from "@/lib/gameplay/balance-dom";
 import { resolvePlayClientId } from "@/lib/group/resolve-play-session";
 import { removeActiveGame } from "@/lib/group/active-games";
-import {
-  completeGroupParticipantRequest,
-  saveGroupAnswerRequest,
-  updateProgressRequest,
-} from "@/lib/group/api-client";
+import { advanceAsyncPlayRequest } from "@/lib/group/api-client";
 import { markDeckCompleted } from "@/lib/storage";
 import { recordCoupleSessionIfPaired } from "@/lib/couple/record-session";
 
@@ -24,6 +20,10 @@ export type AdvanceAsyncPlayInput = {
   selectedOption: "A" | "B" | null;
   resultPath: string;
 };
+
+export type AdvanceAsyncPlayOutcome =
+  | { kind: "next"; nextIndex: number }
+  | { kind: "complete" };
 
 function readSelectedOption(
   root: ParentNode,
@@ -142,7 +142,7 @@ export function readAsyncPlayContext(
 
 export async function advanceAsyncGroupPlay(
   input: AdvanceAsyncPlayInput
-): Promise<void> {
+): Promise<AdvanceAsyncPlayOutcome> {
   const {
     groupId,
     clientId,
@@ -159,8 +159,6 @@ export async function advanceAsyncGroupPlay(
     resultPath,
   } = input;
 
-  const isLast = currentIndex >= totalCards - 1;
-
   const effectiveSelection =
     cardType === "balance"
       ? selectedOption ?? readBalanceSelection(balanceGroupName(cardId))
@@ -170,11 +168,13 @@ export async function advanceAsyncGroupPlay(
     throw new Error("Balance option required");
   }
 
-  await saveGroupAnswerRequest({
+  const advanced = await advanceAsyncPlayRequest({
     groupId,
     clientId,
     cardId,
     cardType,
+    cardIndex: currentIndex,
+    totalCards,
     selectedOption: effectiveSelection ?? undefined,
     selectedLabel:
       effectiveSelection === "A"
@@ -184,8 +184,11 @@ export async function advanceAsyncGroupPlay(
           : undefined,
   });
 
-  if (isLast) {
-    await completeGroupParticipantRequest(groupId, clientId);
+  if (!advanced.ok) {
+    throw new Error("Failed to advance");
+  }
+
+  if (advanced.kind === "complete") {
     removeActiveGame(groupId);
     markDeckCompleted(deckId, {
       deckTitle,
@@ -200,10 +203,8 @@ export async function advanceAsyncGroupPlay(
       minutes: estimatedMinutes,
     });
     window.location.replace(resultPath);
-    return;
+    return { kind: "complete" };
   }
 
-  const nextIndex = currentIndex + 1;
-  await updateProgressRequest(groupId, clientId, nextIndex);
-  window.location.assign(`/group/${groupId}/play?i=${nextIndex}`);
+  return { kind: "next", nextIndex: advanced.nextIndex };
 }

@@ -9,9 +9,12 @@ import {
 import type { Card, Deck } from "@/lib/data";
 import { balanceGroupName, readBalanceSelection } from "@/lib/gameplay/balance-dom";
 import { setClientId } from "@/lib/client-id";
-import { updateProgressRequest } from "@/lib/group/api-client";
-import type { PlayBootstrap } from "@/lib/group/play-bootstrap";
+import {
+  buildAdvanceAsyncInput,
+  runAdvanceAsyncPlay,
+} from "@/lib/group/group-play-next";
 import { resolvePlayClientId } from "@/lib/group/resolve-play-session";
+import type { PlayBootstrap } from "@/lib/group/play-bootstrap";
 import { syncPlaySessionFromUrl } from "@/lib/group/sync-play-session";
 import { getParticipant } from "@/lib/group/result-helpers";
 import { removeActiveGame, upsertActiveGame } from "@/lib/group/active-games";
@@ -22,10 +25,6 @@ import {
 import { useGroupStatePolling } from "@/lib/group/use-group-state-polling";
 import { notifyFriendJoined } from "@/lib/user-data";
 import { useGameplayNextHandler } from "@/lib/hooks/use-gameplay-next-handler";
-import {
-  buildAdvanceAsyncInput,
-  runAdvanceAsyncPlay,
-} from "@/lib/group/group-play-next";
 import type { GroupState } from "@/lib/group/types";
 
 type GroupPlayPageProps = {
@@ -69,8 +68,8 @@ export function GroupPlayPage({
 
   useGroupStatePolling(groupId, setState, {
     enabled: Boolean(clientId) && canPlay,
-    intervalMs: 4000,
-    hiddenIntervalMs: 15000,
+    intervalMs: 8000,
+    hiddenIntervalMs: 20000,
     onUpdate: (next) => {
       if (!clientId) return;
 
@@ -156,11 +155,6 @@ export function GroupPlayPage({
 
   useEffect(() => {
     if (!canPlay || !clientId) return;
-    void updateProgressRequest(groupId, clientId, currentIndex).catch(() => {});
-  }, [groupId, clientId, currentIndex, canPlay]);
-
-  useEffect(() => {
-    if (!canPlay || !clientId) return;
     upsertActiveGame({
       groupId,
       deckId: deck.id,
@@ -201,7 +195,17 @@ export function GroupPlayPage({
     setError("");
 
     try {
-      await runAdvanceAsyncPlay(advanceInput);
+      const outcome = await runAdvanceAsyncPlay(advanceInput);
+      if (outcome.kind === "next") {
+        setCurrentIndex(outcome.nextIndex);
+        setSelectedOption(null);
+        window.history.replaceState(
+          null,
+          "",
+          `/group/${groupId}/play?i=${outcome.nextIndex}`
+        );
+      }
+      setSubmitting(false);
     } catch {
       setError("저장에 실패했어요. 다시 시도해주세요.");
       setSubmitting(false);

@@ -1,4 +1,4 @@
-import { getRepository } from "@/lib/api";
+import { getPlayCardsByDeckId } from "@/lib/data/play-content";
 import { requireHostSession } from "@/lib/group/api-auth";
 import { groupErrorResponse, groupJsonResponse } from "@/lib/group/api-response";
 import { getGroupRepository } from "@/lib/group/index";
@@ -28,7 +28,7 @@ export async function POST(request: Request, context: RouteContext) {
     return groupErrorResponse("Forbidden", 403);
   }
 
-  const cards = await getRepository().getCardsByDeckId(auth.state.group.deckId);
+  const cards = getPlayCardsByDeckId(auth.state.group.deckId);
   const maxCardIndex = Math.max(0, cards.length - 1);
   const currentCard = cards[auth.state.group.currentCardIndex];
 

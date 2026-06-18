@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { GroupResultPage } from "@/components/group/group-result-page";
 import { RouteFallback } from "@/components/layout/route-fallback";
-import { getRepository } from "@/lib/api";
+import {
+  getPlayCardsByDeckId,
+  getPlayDeckById,
+} from "@/lib/data/play-content";
 import { getGroupExpiredFallback } from "@/lib/group/group-access";
 import { loadActiveGroup } from "@/lib/group/load-group-state";
 import { buildGroupResultMetadata } from "@/lib/page-metadata";
@@ -16,7 +19,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const result = await loadActiveGroup(groupId);
   if (result.kind !== "ok") return { title: "결과 | 사이" };
 
-  const deck = await getRepository().getDeckById(result.state.group.deckId);
+  const deck = getPlayDeckById(result.state.group.deckId);
   if (!deck) return { title: "결과 | 사이" };
 
   return buildGroupResultMetadata(deck);
@@ -34,8 +37,8 @@ export default async function GroupResultRoute({ params }: PageProps) {
   const state = result.state;
   if (state.group.mode !== "async") notFound();
 
-  const deck = await getRepository().getDeckById(state.group.deckId);
-  const cards = await getRepository().getCardsByDeckId(state.group.deckId);
+  const deck = getPlayDeckById(state.group.deckId);
+  const cards = getPlayCardsByDeckId(state.group.deckId);
 
   if (!deck) notFound();
 

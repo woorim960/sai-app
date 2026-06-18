@@ -12,18 +12,22 @@ type GameplayNextButtonProps = {
   blocked?: boolean;
   balanceRequired?: boolean;
   className?: string;
+  /** React 핸들러가 있으면 우선 — 페이지 새로고침 없이 진행 */
+  onNext?: () => void;
 };
 
-/** 함께하기(sync) 전용 — 각자하기는 AdvanceNextLink 사용 */
 export function GameplayNextButton({
   isLast,
   blocked = false,
   balanceRequired = false,
   className,
+  onNext,
 }: GameplayNextButtonProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const blockedRef = useRef(blocked);
+  const onNextRef = useRef(onNext);
   blockedRef.current = blocked;
+  onNextRef.current = onNext;
 
   useLayoutEffect(() => {
     const button = buttonRef.current;
@@ -34,6 +38,12 @@ export function GameplayNextButton({
     const onActivate = (event: Event) => {
       event.preventDefault();
       event.stopPropagation();
+
+      if (onNextRef.current) {
+        onNextRef.current();
+        return;
+      }
+
       void activateNextButton(button);
     };
 

@@ -1,17 +1,8 @@
-import { getPlayCardsByDeckId } from "@/lib/data/play-content";
 import { requireGroupSession } from "@/lib/group/api-auth";
 import { groupErrorResponse, groupJsonResponse } from "@/lib/group/api-response";
 import { getGroupRepository } from "@/lib/group/index";
-import { MAX_QUESTION_ANSWER_LENGTH } from "@/lib/group/sync-card-progress";
 
 type RouteContext = { params: Promise<{ groupId: string }> };
-
-function normalizeAnswerText(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  if (!trimmed) return undefined;
-  return trimmed.slice(0, MAX_QUESTION_ANSWER_LENGTH);
-}
 
 export async function POST(request: Request, context: RouteContext) {
   const { groupId } = await context.params;
@@ -19,12 +10,19 @@ export async function POST(request: Request, context: RouteContext) {
     clientId?: string;
     cardId?: string;
     cardType?: "balance" | "question";
+    cardIndex?: number;
+    totalCards?: number;
     selectedOption?: "A" | "B";
     selectedLabel?: string;
-    answerText?: string;
   };
 
-  if (!body.clientId || !body.cardId || !body.cardType) {
+  if (
+    !body.clientId ||
+    !body.cardId ||
+    !body.cardType ||
+    !Number.isFinite(body.cardIndex) ||
+    !Number.isFinite(body.totalCards)
+  ) {
     return groupErrorResponse("Invalid request", 400);
   }
 
@@ -38,27 +36,28 @@ export async function POST(request: Request, context: RouteContext) {
     return groupErrorResponse("Forbidden", 403);
   }
 
-  if (auth.state.group.mode === "sync" && auth.state.group.status === "playing") {
-    const cards = getPlayCardsByDeckId(auth.state.group.deckId);
-    const activeCard = cards[auth.state.group.currentCardIndex];
-    if (!activeCard || activeCard.id !== body.cardId) {
-      return groupErrorResponse("현재 카드가 아니에요", 409);
-    }
+  if (auth.state.group.mode !== "async") {
+    return groupErrorResponse("Async only", 400);
   }
 
-  const state = await repo.saveGroupAnswer({
+  if (body.cardType === "balance" && !body.selectedOption) {
+    return groupErrorResponse("Selection required", 400);
+  }
+
+  const advanced = await repo.advanceAsyncParticipant({
     groupId,
     clientId: body.clientId,
     cardId: body.cardId,
     cardType: body.cardType,
     selectedOption: body.selectedOption,
     selectedLabel: body.selectedLabel,
-    answerText: normalizeAnswerText(body.answerText),
+    cardIndex: body.cardIndex!,
+    totalCards: body.totalCards!,
   });
 
-  if (!state) {
-    return groupErrorResponse("Not found", 404);
+  if (!advanced.ok) {
+    return groupErrorResponse("Failed to advance", 500);
   }
 
-  return groupJsonResponse(state);
+  return groupJsonResponse(advanced);
 }
