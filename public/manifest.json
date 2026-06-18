@@ -1,0 +1,19 @@
+{
+  "name": "사이 | SAI",
+  "short_name": "사이",
+  "description": "더 가까워지고 싶은 사람과 함께 게임하고 대화하며 자연스럽게 알아가세요.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAF8F5",
+  "theme_color": "#8576FF",
+  "lang": "ko",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
