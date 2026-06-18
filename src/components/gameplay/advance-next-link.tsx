@@ -100,6 +100,8 @@ export function AdvanceNextLink({
       selectedOption: selection,
     });
     event.currentTarget.href = nextHref;
+    event.currentTarget.setAttribute("aria-busy", "true");
+    event.currentTarget.classList.add("opacity-70", "pointer-events-none");
   };
 
   if (blocked) {

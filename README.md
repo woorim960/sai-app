@@ -162,6 +162,21 @@ scripts/
 └── validate-data.mts       # 데이터 무결성 검증
 ```
 
+## 배포 (Vercel + Supabase)
+
+Production 배포는 **[DEPLOYMENT.md](./DEPLOYMENT.md)** 를 따르세요. Phase A(Supabase) → B(Vercel) → C(검증) 순서이며, 커스텀 도메인(Phase D)은 제외합니다.
+
+요약:
+
+1. **Supabase**: `supabase/schema.sql` 실행 → `npm run seed:supabase` → `npm run verify:supabase`
+2. **Vercel**: GitHub 연동 후 [`.env.production.example`](./.env.production.example) 환경변수 등록 → Deploy
+3. **검증**: HTTPS Vercel URL에서 모바일 각자하기·초대·함께하기 체크리스트
+
+```bash
+npm run verify:supabase   # DB 스키마·시드 검증
+npm run generate:secret   # GROUP_SESSION_SECRET 생성
+```
+
 ## 스크립트
 
 ```bash
@@ -171,6 +186,8 @@ npm run start         # 프로덕션 서버
 npm run lint          # ESLint
 npm run validate:data # 덱/카드 데이터 검증 (180장, sortOrder 1–15)
 npm run seed:supabase # Supabase 시드 (service role key 필요)
+npm run verify:supabase # Supabase 배포 전 검증 (스키마·시드·anon read)
+npm run generate:secret # GROUP_SESSION_SECRET 생성 (Vercel 등록용)
 npm run test:e2e      # Playwright E2E (dev 서버 자동 기동)
 ```
 

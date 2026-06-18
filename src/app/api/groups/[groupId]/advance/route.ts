@@ -49,7 +49,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return redirectToPath(request, `${playPath}?error=select`);
   }
 
-  const saved = await repo.saveGroupAnswer({
+  const advanced = await repo.advanceAsyncParticipant({
     groupId,
     clientId,
     cardId,
@@ -61,20 +61,17 @@ export async function POST(request: NextRequest, context: RouteContext) {
         : selectedOption === "B"
           ? optionB
           : undefined,
+    cardIndex,
+    totalCards,
   });
 
-  if (!saved) {
+  if (!advanced.ok) {
     return redirectToPath(request, `${playPath}?error=save`);
   }
 
-  const isLast = cardIndex >= totalCards - 1;
-
-  if (isLast) {
-    await repo.completeParticipant(groupId, clientId);
+  if (advanced.kind === "complete") {
     return redirectToPath(request, `/group/${groupId}/result`);
   }
 
-  const nextIndex = cardIndex + 1;
-  await repo.updateParticipantProgress(groupId, clientId, nextIndex);
-  return redirectToPath(request, `${playPath}?i=${nextIndex}`);
+  return redirectToPath(request, `${playPath}?i=${advanced.nextIndex}`);
 }

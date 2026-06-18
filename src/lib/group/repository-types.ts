@@ -1,4 +1,6 @@
 import type {
+  AdvanceAsyncParticipantInput,
+  AdvanceAsyncParticipantResult,
   CreateGroupInput,
   GroupResolveResult,
   GroupState,
@@ -13,6 +15,9 @@ export type GroupRepository = {
   joinGroup(input: JoinGroupInput): Promise<GroupState | null>;
   startSyncGroup(groupId: string, clientId: string): Promise<GroupState | null>;
   saveGroupAnswer(input: SaveAnswerInput): Promise<GroupState | null>;
+  advanceAsyncParticipant(
+    input: AdvanceAsyncParticipantInput
+  ): Promise<AdvanceAsyncParticipantResult>;
   updateParticipantProgress(
     groupId: string,
     clientId: string,

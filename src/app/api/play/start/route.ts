@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { getRepository } from "@/lib/api";
+import { getDeckByIdCached } from "@/lib/api/cached-data";
 import {
   CLIENT_ID_COOKIE,
   DISPLAY_NAME_COOKIE,
@@ -21,15 +21,14 @@ export async function GET(request: NextRequest) {
     return redirectToPath(request, "/home");
   }
 
-  const deck = await getRepository().getDeckById(deckId);
+  const deck = await getDeckByIdCached(deckId);
   const deckPath = `/decks/${deckId}`;
 
   if (!deck) {
     return redirectToPath(request, `${deckPath}?error=not_found`);
   }
 
-  const cards = await getRepository().getCardsByDeckId(deckId);
-  if (cards.length === 0) {
+  if (deck.cardCount < 1) {
     return redirectToPath(request, `${deckPath}?error=no_cards`);
   }
 

@@ -1,6 +1,8 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { GroupRepository } from "./repository-types";
 import type {
+  AdvanceAsyncParticipantInput,
+  AdvanceAsyncParticipantResult,
   CreateGroupInput,
   Group,
   GroupAnswer,
@@ -117,27 +119,19 @@ async function loadRawGroupState(
   client: SupabaseClient,
   groupId: string
 ): Promise<GroupState | null> {
-  const { data: groupRow, error: groupError } = await client
-    .from("play_groups")
-    .select("*")
-    .eq("id", groupId)
-    .maybeSingle();
+  const [
+    { data: groupRow, error: groupError },
+    { data: participants, error: participantsError },
+    { data: answers, error: answersError },
+  ] = await Promise.all([
+    client.from("play_groups").select("*").eq("id", groupId).maybeSingle(),
+    client.from("play_group_participants").select("*").eq("group_id", groupId),
+    client.from("play_group_answers").select("*").eq("group_id", groupId),
+  ]);
 
-  if (groupError || !groupRow) return null;
-
-  const { data: participants, error: participantsError } = await client
-    .from("play_group_participants")
-    .select("*")
-    .eq("group_id", groupId);
-
-  if (participantsError) return null;
-
-  const { data: answers, error: answersError } = await client
-    .from("play_group_answers")
-    .select("*")
-    .eq("group_id", groupId);
-
-  if (answersError) return null;
+  if (groupError || !groupRow || participantsError || answersError) {
+    return null;
+  }
 
   return {
     group: mapGroup(groupRow as GroupRow),
@@ -170,17 +164,38 @@ async function loadActiveGroupState(
   return result.status === "active" ? result.state : null;
 }
 
-async function uniqueGroupId(client: SupabaseClient): Promise<string> {
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const id = generateGroupId();
-    const { data } = await client
-      .from("play_groups")
-      .select("id")
-      .eq("id", id)
-      .maybeSingle();
-    if (!data) return id;
-  }
-  return generateGroupId(16);
+function createUniqueGroupId(): string {
+  return generateGroupId(12);
+}
+
+function buildCreatedGroupState(
+  id: string,
+  input: CreateGroupInput,
+  now: string,
+  expiresAt: string
+): GroupState {
+  const isAsync = input.mode === "async";
+  const group: Group = {
+    id,
+    deckId: input.deckId,
+    mode: input.mode,
+    hostClientId: input.hostClientId,
+    status: isAsync ? "playing" : "waiting",
+    currentCardIndex: 0,
+    createdAt: now,
+    expiresAt,
+    startedAt: isAsync ? now : undefined,
+  };
+
+  const host: GroupParticipant = {
+    clientId: input.hostClientId,
+    displayName: input.hostDisplayName,
+    status: "playing",
+    progressIndex: 0,
+    joinedAt: now,
+  };
+
+  return { group, participants: [host], answers: [] };
 }
 
 export const supabaseGroupRepository: GroupRepository = {
@@ -188,7 +203,7 @@ export const supabaseGroupRepository: GroupRepository = {
     const client = getServiceClient();
     if (!client) throw new Error("Supabase not configured");
 
-    const id = await uniqueGroupId(client);
+    const id = createUniqueGroupId();
     const now = new Date().toISOString();
     const isAsync = input.mode === "async";
     const expiresAt = computeGroupExpiresAt(now);
@@ -220,9 +235,7 @@ export const supabaseGroupRepository: GroupRepository = {
 
     if (participantError) throw participantError;
 
-    const state = await loadRawGroupState(client, id);
-    if (!state) throw new Error("Failed to load created group");
-    return state;
+    return buildCreatedGroupState(id, input, now, expiresAt);
   },
 
   async resolveGroup(groupId) {
@@ -291,14 +304,6 @@ export const supabaseGroupRepository: GroupRepository = {
     const client = getServiceClient();
     if (!client) return null;
 
-    const state = await loadActiveGroupState(client, input.groupId);
-    if (!state) return null;
-
-    const participant = state.participants.find(
-      (p) => p.clientId === input.clientId
-    );
-    if (!participant || participant.status === "completed") return null;
-
     const { error } = await client.from("play_group_answers").upsert(
       {
         group_id: input.groupId,
@@ -317,24 +322,77 @@ export const supabaseGroupRepository: GroupRepository = {
     return loadActiveGroupState(client, input.groupId);
   },
 
+  async advanceAsyncParticipant(
+    input: AdvanceAsyncParticipantInput
+  ): Promise<AdvanceAsyncParticipantResult> {
+    const client = getServiceClient();
+    if (!client) return { ok: false };
+
+    const now = new Date().toISOString();
+    const isLast = input.cardIndex >= input.totalCards - 1;
+
+    const answerWrite = client.from("play_group_answers").upsert(
+      {
+        group_id: input.groupId,
+        client_id: input.clientId,
+        card_id: input.cardId,
+        card_type: input.cardType,
+        selected_option: input.selectedOption ?? null,
+        selected_label: input.selectedLabel ?? null,
+        answer_text: null,
+        answered_at: now,
+      },
+      { onConflict: "group_id,client_id,card_id" }
+    );
+
+    if (isLast) {
+      const [answerResult, completeResult] = await Promise.all([
+        answerWrite,
+        client
+          .from("play_group_participants")
+          .update({ status: "completed", completed_at: now })
+          .eq("group_id", input.groupId)
+          .eq("client_id", input.clientId)
+          .eq("status", "playing"),
+      ]);
+
+      if (answerResult.error || completeResult.error) {
+        return { ok: false };
+      }
+
+      return { ok: true, kind: "complete" };
+    }
+
+    const nextIndex = input.cardIndex + 1;
+    const [answerResult, progressResult] = await Promise.all([
+      answerWrite,
+      client
+        .from("play_group_participants")
+        .update({ progress_index: nextIndex })
+        .eq("group_id", input.groupId)
+        .eq("client_id", input.clientId)
+        .eq("status", "playing"),
+    ]);
+
+    if (answerResult.error || progressResult.error) {
+      return { ok: false };
+    }
+
+    return { ok: true, kind: "next", nextIndex };
+  },
+
   async updateParticipantProgress(groupId, clientId, progressIndex) {
     const client = getServiceClient();
     if (!client) return null;
 
-    const state = await loadActiveGroupState(client, groupId);
-    if (!state) return null;
-
-    const participant = state.participants.find(
-      (p) => p.clientId === clientId
-    );
-    if (!participant || participant.status === "completed") return null;
-
-    await client
+    const { error } = await client
       .from("play_group_participants")
       .update({ progress_index: progressIndex })
       .eq("group_id", groupId)
-      .eq("client_id", clientId);
+      .eq("client_id", clientId)
+      .eq("status", "playing");
 
+    if (error) return null;
     return loadActiveGroupState(client, groupId);
   },
 
@@ -342,21 +400,15 @@ export const supabaseGroupRepository: GroupRepository = {
     const client = getServiceClient();
     if (!client) return null;
 
-    const state = await loadActiveGroupState(client, groupId);
-    if (!state) return null;
-
-    const participant = state.participants.find(
-      (p) => p.clientId === clientId
-    );
-    if (!participant) return null;
-
     const now = new Date().toISOString();
-    await client
+    const { error } = await client
       .from("play_group_participants")
       .update({ status: "completed", completed_at: now })
       .eq("group_id", groupId)
-      .eq("client_id", clientId);
+      .eq("client_id", clientId)
+      .eq("status", "playing");
 
+    if (error) return null;
     return loadActiveGroupState(client, groupId);
   },
 

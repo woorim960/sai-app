@@ -1,5 +1,5 @@
 import { DeckDetailScreen } from "@/components/deck/deck-detail-screen";
-import { getRepository } from "@/lib/api";
+import { getDeckByIdCached } from "@/lib/api/cached-data";
 import { buildDeckMetadata } from "@/lib/page-metadata";
 import { decks } from "@/lib/data";
 import type { Metadata } from "next";
@@ -19,14 +19,14 @@ export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { deckId } = await params;
-  const deck = await getRepository().getDeckById(deckId);
+  const deck = await getDeckByIdCached(deckId);
   if (!deck) return { title: "덱을 찾을 수 없어요" };
   return buildDeckMetadata(deck);
 }
 
 export default async function DeckPage({ params }: PageProps) {
   const { deckId } = await params;
-  const deck = await getRepository().getDeckById(deckId);
+  const deck = await getDeckByIdCached(deckId);
 
   if (!deck) {
     notFound();

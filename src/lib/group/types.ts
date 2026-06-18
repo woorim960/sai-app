@@ -80,3 +80,19 @@ export type SaveAnswerInput = {
   selectedLabel?: string;
   answerText?: string;
 };
+
+export type AdvanceAsyncParticipantInput = {
+  groupId: string;
+  clientId: string;
+  cardId: string;
+  cardType: "balance" | "question";
+  selectedOption?: "A" | "B";
+  selectedLabel?: string;
+  cardIndex: number;
+  totalCards: number;
+};
+
+export type AdvanceAsyncParticipantResult =
+  | { ok: true; kind: "next"; nextIndex: number }
+  | { ok: true; kind: "complete" }
+  | { ok: false };

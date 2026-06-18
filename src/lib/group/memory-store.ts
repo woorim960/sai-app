@@ -2,6 +2,8 @@ import { generateGroupId } from "./id";
 import type { GroupRepository } from "./repository-types";
 import { computeGroupExpiresAt, isGroupExpired } from "./ttl";
 import type {
+  AdvanceAsyncParticipantInput,
+  AdvanceAsyncParticipantResult,
   CreateGroupInput,
   Group,
   GroupAnswer,
@@ -197,6 +199,37 @@ function completeParticipantSync(
   return state;
 }
 
+function advanceAsyncParticipantSync(
+  input: AdvanceAsyncParticipantInput
+): AdvanceAsyncParticipantResult {
+  const saved = saveGroupAnswerSync({
+    groupId: input.groupId,
+    clientId: input.clientId,
+    cardId: input.cardId,
+    cardType: input.cardType,
+    selectedOption: input.selectedOption,
+    selectedLabel: input.selectedLabel,
+  });
+
+  if (!saved) return { ok: false };
+
+  const isLast = input.cardIndex >= input.totalCards - 1;
+  if (isLast) {
+    return completeParticipantSync(input.groupId, input.clientId)
+      ? { ok: true, kind: "complete" }
+      : { ok: false };
+  }
+
+  const nextIndex = input.cardIndex + 1;
+  const progressed = updateParticipantProgressSync(
+    input.groupId,
+    input.clientId,
+    nextIndex
+  );
+
+  return progressed ? { ok: true, kind: "next", nextIndex } : { ok: false };
+}
+
 function advanceSyncCardSync(
   groupId: string,
   clientId: string,
@@ -243,6 +276,7 @@ export const memoryGroupRepository: GroupRepository = {
   startSyncGroup: async (groupId, clientId) =>
     startSyncGroupSync(groupId, clientId),
   saveGroupAnswer: async (input) => saveGroupAnswerSync(input),
+  advanceAsyncParticipant: async (input) => advanceAsyncParticipantSync(input),
   updateParticipantProgress: async (groupId, clientId, progressIndex) =>
     updateParticipantProgressSync(groupId, clientId, progressIndex),
   completeParticipant: async (groupId, clientId) =>
