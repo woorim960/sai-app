@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
+import { LogOut, Sparkles } from "lucide-react";
 import { bindNativeTap } from "@/lib/ui/native-tap";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +9,7 @@ type ConfirmDialogProps = {
   open: boolean;
   title: string;
   message: string;
+  hint?: string;
   confirmLabel?: string;
   cancelLabel?: string;
   onConfirm: () => void;
@@ -18,8 +20,9 @@ export function ConfirmDialog({
   open,
   title,
   message,
+  hint,
   confirmLabel = "나가기",
-  cancelLabel = "취소",
+  cancelLabel = "계속하기",
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -83,7 +86,7 @@ export function ConfirmDialog({
   return (
     <div
       ref={overlayRef}
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-6 sm:items-center"
+      className="fixed inset-0 z-[120] flex items-end justify-center bg-[#1A1625]/45 p-4 pb-[max(20px,env(safe-area-inset-bottom))] backdrop-blur-[2px] sm:items-center sm:p-6"
       role="presentation"
     >
       <div
@@ -93,36 +96,49 @@ export function ConfirmDialog({
         aria-labelledby="confirm-dialog-title"
         aria-describedby="confirm-dialog-description"
         className={cn(
-          "w-full max-w-[360px] rounded-[24px] bg-sai-surface p-6 shadow-[0_8px_40px_rgba(30,30,30,0.12)]",
+          "w-full max-w-[380px] overflow-hidden rounded-[28px] bg-white shadow-[0_24px_64px_rgba(30,30,30,0.18)]",
           "page-enter"
         )}
       >
-        <h2
-          id="confirm-dialog-title"
-          className="text-[18px] font-semibold text-sai-text"
-        >
-          {title}
-        </h2>
-        <p
-          id="confirm-dialog-description"
-          className="mt-2 text-[15px] leading-relaxed text-sai-text-secondary"
-        >
-          {message}
-        </p>
-        <div className="mt-6 flex flex-col gap-2">
-          <button
-            ref={confirmRef}
-            type="button"
-            className="h-12 touch-manipulation rounded-[14px] bg-sai-primary text-[15px] font-medium text-white transition-colors hover:bg-sai-primary/90"
+        <div className="bg-gradient-to-br from-[#F6F3FF] via-white to-[#FFF9F5] px-6 pb-2 pt-7 text-center">
+          <span className="mx-auto flex size-14 items-center justify-center rounded-[20px] bg-white shadow-[0_8px_24px_rgba(133,118,255,0.18)] ring-1 ring-[#EEEAFF]">
+            <Sparkles className="size-7 text-sai-primary" strokeWidth={1.8} />
+          </span>
+          <h2
+            id="confirm-dialog-title"
+            className="mt-5 text-[20px] font-bold tracking-[-0.02em] text-sai-text"
           >
-            {confirmLabel}
-          </button>
+            {title}
+          </h2>
+          <p
+            id="confirm-dialog-description"
+            className="mt-2.5 text-[15px] leading-relaxed text-sai-text-secondary"
+          >
+            {message}
+          </p>
+          {hint && (
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#F4FFF8] px-3.5 py-1.5 text-[12.5px] font-medium text-[#2E9B5B] ring-1 ring-[#D8F5E3]">
+              <span aria-hidden>✓</span>
+              {hint}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2.5 px-5 pb-5 pt-4">
           <button
             ref={cancelRef}
             type="button"
-            className="h-12 touch-manipulation rounded-[14px] text-[15px] font-medium text-sai-text-secondary transition-colors hover:bg-accent"
+            className="h-[52px] w-full touch-manipulation rounded-[16px] bg-sai-primary text-[16px] font-semibold text-white shadow-[0_10px_28px_rgba(133,118,255,0.28)] transition-transform active:scale-[0.99]"
           >
             {cancelLabel}
+          </button>
+          <button
+            ref={confirmRef}
+            type="button"
+            className="flex h-11 w-full touch-manipulation items-center justify-center gap-1.5 rounded-[14px] text-[14px] font-medium text-sai-text-secondary transition-colors hover:bg-[#F7F6FA] active:scale-[0.99]"
+          >
+            <LogOut className="size-4 opacity-70" strokeWidth={2} />
+            {confirmLabel}
           </button>
         </div>
       </div>

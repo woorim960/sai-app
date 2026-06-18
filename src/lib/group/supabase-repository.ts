@@ -339,7 +339,7 @@ export const supabaseGroupRepository: GroupRepository = {
         card_type: input.cardType,
         selected_option: input.selectedOption ?? null,
         selected_label: input.selectedLabel ?? null,
-        answer_text: null,
+        answer_text: input.answerText ?? null,
         answered_at: now,
       },
       { onConflict: "group_id,client_id,card_id" }

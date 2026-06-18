@@ -10,9 +10,13 @@ type GameplayShellProps = {
   currentIndex: number;
   selectedOption: "A" | "B" | null;
   onSelectOption: (option: "A" | "B") => void;
+  answerText?: string;
+  onAnswerTextChange?: (value: string) => void;
   onNext: () => void;
   backHref: string;
+  backConfirmTitle?: string;
   backConfirmMessage?: string;
+  backConfirmHint?: string;
   isLast: boolean;
   nextBlocked?: boolean;
   showNextButton?: boolean;
@@ -36,9 +40,13 @@ export function GameplayShell({
   currentIndex,
   selectedOption,
   onSelectOption,
+  answerText,
+  onAnswerTextChange,
   onNext,
   backHref,
+  backConfirmTitle,
   backConfirmMessage,
+  backConfirmHint,
   isLast,
   nextBlocked = false,
   showNextButton = true,
@@ -57,7 +65,7 @@ export function GameplayShell({
   const isBalance = currentCard.type === "balance";
 
   return (
-    <MobileShell className="page-enter bg-[#FAFAFC]">
+    <MobileShell className="page-enter bg-gradient-to-b from-[#FAFAFC] via-[#FAF8FF] to-[#F6F3FF]">
       <div
         className="gameplay-shell flex h-full min-h-0 flex-col px-5 pb-4 safe-pt safe-pb"
         data-balance-required={isBalance ? "true" : "false"}
@@ -85,17 +93,21 @@ export function GameplayShell({
             <div className="absolute left-0 z-20">
               <GameplayBackLink
                 href={backHref}
+                confirmTitle={backConfirmTitle}
                 confirmMessage={backConfirmMessage}
+                confirmHint={backConfirmHint}
               />
             </div>
             <div className="text-center">
               {title && (
-                <p className="text-[15px] font-bold tracking-[-0.01em] text-sai-text">
+                <p className="text-[15px] font-bold tracking-[-0.02em] text-sai-text">
                   {title}
                 </p>
               )}
-              <p className="mt-0.5 text-[12px] font-semibold text-sai-text-secondary">
-                {displayIndex} / {totalCards}
+              <p className="mt-0.5 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-2.5 py-0.5 text-[11.5px] font-semibold text-sai-text-secondary shadow-sm ring-1 ring-[#EEEDF4]">
+                <span className="text-sai-primary">{displayIndex}</span>
+                <span className="opacity-40">/</span>
+                <span>{totalCards}</span>
               </p>
             </div>
           </div>
@@ -111,6 +123,10 @@ export function GameplayShell({
               card={currentCard}
               selectedOption={selectedOption}
               onSelectOption={onSelectOption}
+              answerText={answerText}
+              onAnswerTextChange={
+                currentCard.type === "question" ? onAnswerTextChange : undefined
+              }
             />
           </div>
         </main>

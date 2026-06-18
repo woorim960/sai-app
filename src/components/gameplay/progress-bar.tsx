@@ -13,10 +13,10 @@ export function ProgressBar({ current, total }: ProgressBarProps) {
       aria-valuemax={total}
       aria-valuenow={current}
       aria-label={`진행률 ${current}/${total}`}
-      className="h-1 w-full overflow-hidden rounded-full bg-border"
+      className="h-1.5 w-full overflow-hidden rounded-full bg-[#EEEDF4]"
     >
       <div
-        className="h-full rounded-full bg-sai-primary transition-all duration-500 ease-out"
+        className="h-full rounded-full bg-gradient-to-r from-sai-primary via-[#9B8CFF] to-[#B8AEFF] transition-all duration-500 ease-out shadow-[0_0_12px_rgba(133,118,255,0.35)]"
         style={{ width: `${progress}%` }}
       />
     </div>

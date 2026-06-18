@@ -87,8 +87,9 @@ export function BackButton({
       {confirmMessage && (
         <ConfirmDialog
           open={confirmOpen}
-          title="나가시겠어요?"
+          title="잠깐, 나가실 건가요?"
           message={confirmMessage}
+          hint="진행 상황은 자동 저장됩니다"
           confirmLabel="나가기"
           cancelLabel="계속하기"
           onConfirm={() => {

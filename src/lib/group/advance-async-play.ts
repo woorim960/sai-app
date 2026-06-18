@@ -18,6 +18,7 @@ export type AdvanceAsyncPlayInput = {
   optionA?: string;
   optionB?: string;
   selectedOption: "A" | "B" | null;
+  answerText?: string;
   resultPath: string;
 };
 
@@ -157,6 +158,7 @@ export async function advanceAsyncGroupPlay(
     optionB,
     selectedOption,
     resultPath,
+    answerText,
   } = input;
 
   const effectiveSelection =
@@ -182,6 +184,7 @@ export async function advanceAsyncGroupPlay(
         : effectiveSelection === "B"
           ? optionB
           : undefined,
+    answerText: cardType === "question" ? input.answerText?.trim() || undefined : undefined,
   });
 
   if (!advanced.ok) {

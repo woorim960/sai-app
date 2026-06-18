@@ -15,6 +15,7 @@ export function buildAdvanceAsyncInput(input: {
   currentIndex: number;
   currentCard: Card;
   selectedOption: "A" | "B" | null;
+  answerText?: string;
   resultPath: string;
   clientId: string;
   bootstrap: PlayBootstrap | null;
@@ -46,6 +47,7 @@ export function buildAdvanceAsyncInput(input: {
     optionA: input.currentCard.optionA,
     optionB: input.currentCard.optionB,
     selectedOption: effectiveSelection,
+    answerText: input.answerText?.trim() || undefined,
     resultPath: input.resultPath,
   };
 }

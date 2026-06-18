@@ -175,6 +175,7 @@ export async function advanceAsyncPlayRequest(input: {
   totalCards: number;
   selectedOption?: "A" | "B";
   selectedLabel?: string;
+  answerText?: string;
 }): Promise<AdvanceAsyncPlayResult> {
   const res = await fetch(`/api/groups/${input.groupId}/advance-play`, {
     method: "POST",

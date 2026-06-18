@@ -88,6 +88,7 @@ export type AdvanceAsyncParticipantInput = {
   cardType: "balance" | "question";
   selectedOption?: "A" | "B";
   selectedLabel?: string;
+  answerText?: string;
   cardIndex: number;
   totalCards: number;
 };

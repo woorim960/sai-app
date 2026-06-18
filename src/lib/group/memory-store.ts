@@ -209,6 +209,7 @@ function advanceAsyncParticipantSync(
     cardType: input.cardType,
     selectedOption: input.selectedOption,
     selectedLabel: input.selectedLabel,
+    answerText: input.answerText,
   });
 
   if (!saved) return { ok: false };

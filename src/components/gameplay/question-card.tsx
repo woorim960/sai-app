@@ -1,6 +1,7 @@
 import { MessageCircleHeart } from "lucide-react";
 import type { Card } from "@/lib/data";
 import { PHASE_LABELS } from "@/lib/data";
+import { QuestionAnswerInput } from "./question-answer-input";
 import { BalanceOptions } from "./balance-options";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +9,8 @@ type QuestionCardProps = {
   card: Card;
   selectedOption: "A" | "B" | null;
   onSelectOption: (option: "A" | "B") => void;
+  answerText?: string;
+  onAnswerTextChange?: (value: string) => void;
   className?: string;
 };
 
@@ -15,6 +18,8 @@ export function QuestionCard({
   card,
   selectedOption,
   onSelectOption,
+  answerText = "",
+  onAnswerTextChange,
   className,
 }: QuestionCardProps) {
   const isBalance = card.type === "balance";
@@ -53,22 +58,31 @@ export function QuestionCard({
   }
 
   return (
-    <div
-      className={cn(
-        "sai-card flex min-h-[360px] flex-col items-center justify-center px-5 py-8 text-center",
-        className
+    <div className={cn("flex flex-col", className)}>
+      <div className="rounded-[28px] bg-gradient-to-b from-white to-[#FAFAFC] px-5 py-7 shadow-[0_8px_40px_rgba(30,30,30,0.06)] ring-1 ring-[#F0EEF8]">
+        <div className="flex justify-center">
+          <span className="sai-chip bg-[#F0EDFF] font-semibold text-sai-primary">
+            {PHASE_LABELS[card.phase]}
+          </span>
+        </div>
+        <p className="mt-5 text-center text-[12px] font-bold uppercase tracking-[0.14em] text-sai-primary/80">
+          Question
+        </p>
+        <h2 className="mt-3 text-center text-[22px] font-bold leading-[1.45] tracking-[-0.02em] text-sai-text">
+          {card.question}
+        </h2>
+        <p className="mx-auto mt-4 max-w-[280px] text-center text-[13.5px] leading-relaxed text-sai-text-secondary">
+          {card.helperText}
+        </p>
+      </div>
+
+      {onAnswerTextChange && (
+        <QuestionAnswerInput
+          value={answerText}
+          onChange={onAnswerTextChange}
+          className="mt-5"
+        />
       )}
-    >
-      <span className="mb-4 sai-chip bg-accent font-semibold text-sai-primary">
-        {PHASE_LABELS[card.phase]}
-      </span>
-      <p className="text-[13px] font-semibold text-sai-primary">Q.</p>
-      <h2 className="mt-2 text-[22px] font-bold leading-[1.4] tracking-[-0.02em] text-sai-text">
-        {card.question}
-      </h2>
-      <p className="mt-8 w-full rounded-[16px] bg-sai-bg px-4 py-3 text-[14px] leading-relaxed text-sai-text-secondary">
-        {card.helperText}
-      </p>
     </div>
   );
 }

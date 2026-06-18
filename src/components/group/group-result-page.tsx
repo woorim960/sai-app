@@ -59,14 +59,14 @@ function InviteCta({
   onClick: () => void;
 }) {
   return (
-    <div className="mb-8 rounded-[20px] border border-dashed border-sai-primary/25 bg-sai-surface px-5 py-5 text-center shadow-sm">
-      <p className="text-[15px] font-semibold text-sai-text">{title}</p>
-      <p className="mt-2 text-[13px] leading-relaxed text-sai-text-secondary">
+    <div className="rounded-[22px] border border-[#EEEDF4] bg-white px-5 py-5 text-center shadow-[0_6px_24px_rgba(45,49,66,0.05)]">
+      <p className="text-[16px] font-bold text-sai-text">{title}</p>
+      <p className="mt-2 text-[13.5px] leading-relaxed text-sai-text-secondary">
         {description}
       </p>
       <Button
         onClick={onClick}
-        className="mt-4 h-12 w-full rounded-[14px] bg-sai-primary text-[15px] font-medium text-white hover:bg-sai-primary/90"
+        className="mt-4 h-12 w-full rounded-[16px] bg-gradient-to-r from-sai-primary to-[#A89EFF] text-[15px] font-semibold text-white shadow-[0_8px_24px_rgba(133,118,255,0.25)] hover:opacity-95"
       >
         {buttonLabel}
       </Button>
@@ -188,23 +188,23 @@ export function GroupResultPage({
   const showComparePhase = !isAsync || comparisonReady;
 
   return (
-    <MobileShell className="page-enter flex h-full flex-col overflow-hidden">
-      <div className="relative flex h-full min-h-0 flex-col px-6 pb-0 safe-pt">
+    <MobileShell className="page-enter bg-[#FAFAFC]">
+      <div className="app-viewport-scroll relative h-full min-h-0 px-6 pb-[max(24px,env(safe-area-inset-bottom))] safe-pt">
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-gradient-to-b from-[#F0EDFF]/70 via-[#FAF8FF]/40 to-transparent"
+          className="pointer-events-none absolute inset-x-0 top-0 h-96 bg-gradient-to-b from-[#F0EDFF]/80 via-[#FAF8FF]/50 to-transparent"
         />
 
-        <ResultPageHeader
-          deckTitle={deck.title}
-          statusLabel={statusLabel}
-          expiresLabel={expiresLabel}
-          comparisonReady={comparisonReady}
-          participants={headerParticipants}
-          isSync={!isAsync}
-        />
+        <div className="relative z-10 space-y-7 pb-6">
+          <ResultPageHeader
+            deckTitle={deck.title}
+            statusLabel={statusLabel}
+            expiresLabel={expiresLabel}
+            comparisonReady={comparisonReady}
+            participants={headerParticipants}
+            isSync={!isAsync}
+          />
 
-        <main className="app-viewport-scroll relative z-10 mt-5 flex-1 space-y-7 pb-4">
           {clientId && !me && (
             <InviteCta
               title="이 대화에 참여해보세요"
@@ -233,17 +233,17 @@ export function GroupResultPage({
               />
               <MyResultSummary results={myBalanceResults} />
 
-              <div className="rounded-[20px] border border-dashed border-border bg-[#FAF8F5] px-5 py-5 text-center">
-                <p className="text-[14px] font-semibold text-sai-text">
+              <div className="rounded-[22px] border border-dashed border-sai-primary/20 bg-white px-5 py-5 text-center shadow-[0_4px_20px_rgba(45,49,66,0.04)]">
+                <p className="text-[15px] font-semibold text-sai-text">
                   비교 결과 대기 중
                 </p>
-                <p className="mt-2 text-[12px] leading-relaxed text-sai-text-secondary">
+                <p className="mt-2 text-[13px] leading-relaxed text-sai-text-secondary">
                   2명 이상 플레이를 마치면 궁합 분석과 선택 분포가 열려요.
                 </p>
               </div>
 
               {inProgressParticipants.length > 0 && (
-                <div className="rounded-[18px] border border-border/60 bg-sai-surface px-4 py-4">
+                <div className="rounded-[20px] border border-[#EEEDF4] bg-white px-4 py-4 shadow-sm">
                   <p className="text-[12px] font-semibold text-sai-text-secondary">
                     진행 중인 친구
                   </p>
@@ -251,7 +251,7 @@ export function GroupResultPage({
                     {inProgressParticipants.map((participant) => (
                       <span
                         key={participant.clientId}
-                        className="rounded-full bg-accent px-3 py-1 text-[12px] font-medium text-sai-primary"
+                        className="rounded-full bg-[#F0EDFF] px-3 py-1 text-[12px] font-medium text-sai-primary"
                       >
                         {participant.displayName}
                       </span>
@@ -259,7 +259,6 @@ export function GroupResultPage({
                   </div>
                 </div>
               )}
-
             </section>
           )}
 
@@ -295,28 +294,28 @@ export function GroupResultPage({
               />
             </>
           )}
-        </main>
 
-        <div className="z-20 -mx-6 mt-6 shrink-0 border-t border-white/60 bg-sai-bg/90 px-6 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 backdrop-blur-2xl">
-          {showShare && (
-            <GroupShareButton
-              groupId={groupId}
-              deckTitle={deck.title}
-              compact={!isAsync}
-              variant={isAsync ? "invite" : "share"}
-            />
-          )}
-          <Link
-            href="/home"
-            className={cn(
-              "flex w-full items-center justify-center rounded-[16px] text-[14px] font-semibold transition-all active:scale-[0.98]",
-              showShare
-                ? "mt-2 py-2.5 text-sai-text-secondary hover:text-sai-primary"
-                : "bg-white py-3.5 text-sai-primary shadow-[0_4px_16px_rgba(118,99,234,0.1)]"
+          <div className="space-y-3 rounded-[24px] border border-[#EEEDF4] bg-white/90 p-4 shadow-[0_8px_32px_rgba(45,49,66,0.06)] backdrop-blur-sm">
+            {showShare && (
+              <GroupShareButton
+                groupId={groupId}
+                deckTitle={deck.title}
+                compact={!isAsync}
+                variant={isAsync ? "invite" : "share"}
+              />
             )}
-          >
-            홈으로 돌아가기
-          </Link>
+            <Link
+              href="/home"
+              className={cn(
+                "flex w-full items-center justify-center rounded-[16px] text-[14px] font-semibold transition-all active:scale-[0.98]",
+                showShare
+                  ? "py-2.5 text-sai-text-secondary hover:text-sai-primary"
+                  : "bg-gradient-to-r from-sai-primary to-[#A89EFF] py-3.5 text-white shadow-[0_8px_24px_rgba(133,118,255,0.28)]"
+              )}
+            >
+              홈으로 돌아가기
+            </Link>
+          </div>
         </div>
       </div>
 

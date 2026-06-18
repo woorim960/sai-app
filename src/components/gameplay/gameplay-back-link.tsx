@@ -2,13 +2,17 @@ import { cn } from "@/lib/utils";
 
 type GameplayBackLinkProps = {
   href: string;
+  confirmTitle?: string;
   confirmMessage?: string;
+  confirmHint?: string;
   className?: string;
 };
 
 export function GameplayBackLink({
   href,
+  confirmTitle,
   confirmMessage,
+  confirmHint,
   className,
 }: GameplayBackLinkProps) {
   return (
@@ -16,6 +20,8 @@ export function GameplayBackLink({
       href={href}
       data-sai-back
       data-confirm={confirmMessage}
+      data-confirm-title={confirmTitle}
+      data-confirm-hint={confirmHint}
       aria-label="뒤로가기"
       className={cn(
         "flex size-10 items-center justify-center rounded-full transition-colors hover:bg-black/[0.04] active:scale-95 touch-manipulation",

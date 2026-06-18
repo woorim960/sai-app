@@ -14,6 +14,7 @@ export async function POST(request: Request, context: RouteContext) {
     totalCards?: number;
     selectedOption?: "A" | "B";
     selectedLabel?: string;
+    answerText?: string;
   };
 
   if (
@@ -47,6 +48,7 @@ export async function POST(request: Request, context: RouteContext) {
     cardType: body.cardType,
     selectedOption: body.selectedOption,
     selectedLabel: body.selectedLabel,
+    answerText: body.answerText?.trim() || undefined,
     cardIndex: body.cardIndex!,
     totalCards: body.totalCards!,
   });

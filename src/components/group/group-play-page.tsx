@@ -71,6 +71,7 @@ export function GroupPlayPage({
     bootstrap?.initialProgressIndex ?? 0
   );
   const [selectedOption, setSelectedOption] = useState<"A" | "B" | null>(null);
+  const [answerText, setAnswerText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [, startCardTransition] = useTransition();
@@ -79,6 +80,11 @@ export function GroupPlayPage({
   const currentCard = cards[currentIndex];
   const isLast = currentIndex === cards.length - 1;
   const isBalance = currentCard?.type === "balance";
+
+  useEffect(() => {
+    setAnswerText("");
+    setSelectedOption(null);
+  }, [currentCard?.id]);
 
   useGroupStatePolling(groupId, setState, {
     enabled: Boolean(clientId) && canPlay,
@@ -213,6 +219,7 @@ export function GroupPlayPage({
       currentIndex,
       currentCard,
       selectedOption: effectiveSelection,
+      answerText: isBalance ? undefined : answerText,
       resultPath,
       clientId: effectiveClientId,
       bootstrap,
@@ -237,11 +244,16 @@ export function GroupPlayPage({
     }
 
     const nextIndex = currentIndex + 1;
-    const rollback = { index: currentIndex, selection: selectedOption };
+    const rollback = {
+      index: currentIndex,
+      selection: selectedOption,
+      text: answerText,
+    };
 
     startCardTransition(() => {
       setCurrentIndex(nextIndex);
       setSelectedOption(null);
+      setAnswerText("");
     });
     window.history.replaceState(
       null,
@@ -264,12 +276,14 @@ export function GroupPlayPage({
           : effectiveSelection === "B"
             ? advanceInput.optionB
             : undefined,
+      answerText: advanceInput.answerText,
     })
       .then((outcome) => {
         if (!outcome.ok) {
           startCardTransition(() => {
             setCurrentIndex(rollback.index);
             setSelectedOption(rollback.selection);
+            setAnswerText(rollback.text);
           });
           window.history.replaceState(
             null,
@@ -283,6 +297,7 @@ export function GroupPlayPage({
         startCardTransition(() => {
           setCurrentIndex(rollback.index);
           setSelectedOption(rollback.selection);
+          setAnswerText(rollback.text);
         });
         window.history.replaceState(
           null,
@@ -325,9 +340,13 @@ export function GroupPlayPage({
         currentIndex={currentIndex}
         selectedOption={selectedOption}
         onSelectOption={setSelectedOption}
+        answerText={answerText}
+        onAnswerTextChange={setAnswerText}
         onNext={handleNext}
         backHref={`/decks/${deck.id}`}
-        backConfirmMessage="진행 중인 대화가 저장됩니다. 나가시겠어요?"
+        backConfirmTitle="잠깐, 나가실 건가요?"
+        backConfirmMessage="지금까지 한 답변은 저장돼요. 언제든 이어서 할 수 있어요."
+        backConfirmHint="진행 상황은 자동 저장됩니다"
         isLast={isLast}
         nextBlocked={isLast && submitting}
         title={deck.title}
