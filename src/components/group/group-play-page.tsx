@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { GameplayPageSkeleton } from "@/components/gameplay/gameplay-page-skeleton";
 import { GameplayShell } from "@/components/gameplay/gameplay-shell";
 import {
   ParticipantAvatars,
@@ -61,7 +62,7 @@ export function GroupPlayPage({
 
   const [state, setState] = useState(initialState);
   const [clientId, setClientIdState] = useState(
-    immediateClient.clientId || bootstrap?.clientId || ""
+    bootstrap?.clientId || immediateClient.clientId || ""
   );
   const [clientReady, setClientReady] = useState(
     hasServerSession || immediateClient.ready
@@ -309,7 +310,7 @@ export function GroupPlayPage({
   );
 
   if (!canPlay || !currentCard) {
-    return null;
+    return <GameplayPageSkeleton />;
   }
 
   return (

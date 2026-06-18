@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { GameplayPageSkeleton } from "@/components/gameplay/gameplay-page-skeleton";
 import { GroupPlayPage } from "@/components/group/group-play-page";
 import { RouteFallback } from "@/components/layout/route-fallback";
 import {
@@ -15,6 +16,10 @@ import { readPlayHandoff } from "@/lib/group/play-handoff";
 import { buildTrustedPlayBootstrap } from "@/lib/group/play-bootstrap";
 import { saveGroupSessionToken } from "@/lib/group/session-storage";
 import { setClientId } from "@/lib/client-id";
+import {
+  useInstantPlayEntry,
+  type PlayEntryPayload,
+} from "@/lib/hooks/use-instant-play-entry";
 import type { GroupState } from "@/lib/group/types";
 
 type GroupPlayClientEntryProps = {
@@ -23,44 +28,17 @@ type GroupPlayClientEntryProps = {
   st?: string;
 };
 
-type EntryPayload = {
-  deckId: string;
-  initialState: GroupState;
-  clientId: string;
-  sessionToken: string;
-};
-
 function buildEntryPayload(
   state: GroupState,
   clientId: string,
   sessionToken: string
-): EntryPayload {
+): PlayEntryPayload {
   return {
     deckId: state.group.deckId,
     initialState: state,
     clientId,
     sessionToken,
   };
-}
-
-function resolveInstantEntry(
-  groupId: string,
-  sid?: string,
-  st?: string
-): EntryPayload | null {
-  const handoff = readPlayHandoff();
-  if (
-    handoff?.groupId === groupId &&
-    handoff.mode === "async" &&
-    handoff.initialState
-  ) {
-    return buildEntryPayload(
-      handoff.initialState,
-      sid ?? handoff.clientId,
-      st ?? handoff.sessionToken
-    );
-  }
-  return null;
 }
 
 function sleep(ms: number): Promise<void> {
@@ -73,17 +51,19 @@ export function GroupPlayClientEntry({
   st,
 }: GroupPlayClientEntryProps) {
   const router = useRouter();
-  const instantEntry = useMemo(
-    () => resolveInstantEntry(groupId, sid, st),
-    [groupId, sid, st]
+  const instantEntry = useInstantPlayEntry(groupId, sid, st);
+  const latchedEntryRef = useRef<PlayEntryPayload | null>(null);
+  if (instantEntry) latchedEntryRef.current = instantEntry;
+
+  const [fallbackEntry, setFallbackEntry] = useState<PlayEntryPayload | null>(
+    null
   );
-  const [fallbackEntry, setFallbackEntry] = useState<EntryPayload | null>(null);
   const [fallbackError, setFallbackError] = useState<
     "missing" | "expired" | null
   >(null);
 
   useEffect(() => {
-    if (instantEntry) return;
+    if (latchedEntryRef.current) return;
 
     const clientId = sid?.trim();
     const sessionToken = st?.trim();
@@ -136,7 +116,7 @@ export function GroupPlayClientEntry({
     };
   }, [groupId, instantEntry, sid, st]);
 
-  const entry = instantEntry ?? fallbackEntry;
+  const entry = latchedEntryRef.current ?? fallbackEntry;
 
   if (fallbackError === "expired") {
     const handoff = readPlayHandoff();
@@ -158,7 +138,9 @@ export function GroupPlayClientEntry({
     );
   }
 
-  if (!entry) return null;
+  if (!entry) {
+    return <GameplayPageSkeleton />;
+  }
 
   const deck = getPlayDeckById(entry.deckId);
   const cards = getPlayCardsByDeckId(entry.deckId);
@@ -186,7 +168,7 @@ export function GroupPlayClientEntry({
 
   if (bootstrap?.completed) {
     router.replace(`/group/${groupId}/result`);
-    return null;
+    return <GameplayPageSkeleton />;
   }
 
   return (

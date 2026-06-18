@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { LobbyPageSkeleton } from "@/components/group/lobby-page-skeleton";
 import { RoomLobbyScreen } from "@/components/group/room-lobby-screen";
 import { RouteFallback } from "@/components/layout/route-fallback";
 import { getPlayDeckById } from "@/lib/data/play-content";
@@ -9,6 +10,7 @@ import { pollGroupState } from "@/lib/group/poll-group-state";
 import { readPlayHandoff } from "@/lib/group/play-handoff";
 import { saveGroupSessionToken } from "@/lib/group/session-storage";
 import { setClientId } from "@/lib/client-id";
+import { useInstantLobbyEntry } from "@/lib/hooks/use-instant-play-entry";
 import type { GroupState } from "@/lib/group/types";
 
 type RoomLobbyClientEntryProps = {
@@ -16,20 +18,6 @@ type RoomLobbyClientEntryProps = {
   sid?: string;
   st?: string;
 };
-
-function resolveInstantLobby(
-  groupId: string
-): { deckId: string; initialState: GroupState } | null {
-  const handoff = readPlayHandoff();
-  if (
-    handoff?.groupId === groupId &&
-    handoff.mode === "sync" &&
-    handoff.initialState
-  ) {
-    return { deckId: handoff.deckId, initialState: handoff.initialState };
-  }
-  return null;
-}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -40,7 +28,13 @@ export function RoomLobbyClientEntry({
   sid,
   st,
 }: RoomLobbyClientEntryProps) {
-  const instant = useMemo(() => resolveInstantLobby(groupId), [groupId]);
+  const instant = useInstantLobbyEntry(groupId);
+  const latchedRef = useRef<{
+    deckId: string;
+    initialState: GroupState;
+  } | null>(null);
+  if (instant) latchedRef.current = instant;
+
   const [fallback, setFallback] = useState<{
     deckId: string;
     initialState: GroupState;
@@ -48,7 +42,7 @@ export function RoomLobbyClientEntry({
   const [error, setError] = useState<"missing" | "expired" | null>(null);
 
   useEffect(() => {
-    if (instant) return;
+    if (latchedRef.current) return;
 
     const clientId = sid?.trim();
     const sessionToken = st?.trim();
@@ -102,7 +96,7 @@ export function RoomLobbyClientEntry({
     };
   }, [groupId, instant, sid, st]);
 
-  const payload = instant ?? fallback;
+  const payload = latchedRef.current ?? fallback;
 
   if (error === "expired") {
     return (
@@ -123,7 +117,9 @@ export function RoomLobbyClientEntry({
     );
   }
 
-  if (!payload) return null;
+  if (!payload) {
+    return <LobbyPageSkeleton />;
+  }
 
   const deck = getPlayDeckById(payload.deckId);
   if (!deck) {
