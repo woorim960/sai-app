@@ -29,6 +29,7 @@ export function resolveInstantPlayEntry(
   if (
     handoff?.groupId === groupId &&
     handoff.mode === "async" &&
+    handoff.initialState?.group?.mode === "async" &&
     handoff.initialState
   ) {
     return {
@@ -48,6 +49,7 @@ export function resolveInstantLobbyEntry(
   if (
     handoff?.groupId === groupId &&
     handoff.mode === "sync" &&
+    handoff.initialState?.group?.mode === "sync" &&
     handoff.initialState
   ) {
     return {

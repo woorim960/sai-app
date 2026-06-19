@@ -45,17 +45,17 @@ export function RoomLobbyClientEntry({
   const [error, setError] = useState<"missing" | "expired" | null>(null);
 
   useEffect(() => {
-    if (latchedRef.current) return;
-
     const credentials = resolvePlaySessionCredentials(groupId, sid, st);
     if (!credentials) {
-      setError("missing");
+      if (!latchedRef.current) setError("missing");
       return;
     }
 
     const { clientId, sessionToken } = credentials;
     setClientId(clientId);
     saveGroupSessionToken(groupId, sessionToken);
+
+    if (latchedRef.current) return;
 
     let cancelled = false;
 

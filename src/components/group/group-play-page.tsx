@@ -21,6 +21,7 @@ import {
   peekImmediatePlayClient,
 } from "@/lib/group/resolve-immediate-play-client";
 import { clearPlayHandoff } from "@/lib/group/play-handoff";
+import { clearPlayStartCache } from "@/lib/group/play-start-cache";
 import type { PlayBootstrap } from "@/lib/group/play-bootstrap";
 import { syncPlaySessionFromUrl } from "@/lib/group/sync-play-session";
 import { getParticipant } from "@/lib/group/result-helpers";
@@ -115,6 +116,18 @@ export function GroupPlayPage({
       clearPlayHandoff();
     }
   }, [bootstrap, clientReady, groupId]);
+
+  useEffect(() => {
+    const clearStalePlayState = () => {
+      clearPlayHandoff();
+      clearPlayStartCache(deck.id);
+    };
+
+    window.addEventListener("pagehide", clearStalePlayState);
+    return () => {
+      window.removeEventListener("pagehide", clearStalePlayState);
+    };
+  }, [deck.id]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

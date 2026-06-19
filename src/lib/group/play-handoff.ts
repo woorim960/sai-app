@@ -34,6 +34,8 @@ export function readPlayHandoff(): PlayHandoff | null {
       return null;
     }
     if (!parsed.initialState?.group?.id) return null;
+    if (parsed.groupId !== parsed.initialState.group.id) return null;
+    if (parsed.mode !== parsed.initialState.group.mode) return null;
     return parsed;
   } catch {
     return null;

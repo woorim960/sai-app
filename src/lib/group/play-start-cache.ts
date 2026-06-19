@@ -12,7 +12,11 @@ import {
 } from "@/lib/cookies";
 import { createGroupRequest } from "@/lib/group/api-client";
 import type { CreateGroupResponse } from "@/lib/group/create-group-response";
-import { savePlayHandoff } from "@/lib/group/play-handoff";
+import {
+  clearPlayHandoff,
+  savePlayHandoff,
+  type PlayHandoff,
+} from "@/lib/group/play-handoff";
 import { saveGroupSessionToken } from "@/lib/group/session-storage";
 import type { GroupMode } from "@/lib/group/types";
 
@@ -23,9 +27,13 @@ export type PlayStartReady = {
   targetPath: string;
 };
 
+type PlayStartPayload = PlayStartReady & {
+  handoff: PlayHandoff;
+};
+
 type CacheEntry = {
-  promise: Promise<PlayStartReady>;
-  ready?: PlayStartReady;
+  promise: Promise<PlayStartPayload>;
+  ready?: PlayStartPayload;
   createdAt: number;
 };
 
@@ -33,6 +41,10 @@ const cache = new Map<string, CacheEntry>();
 
 function cacheKey(deckId: string, mode: GroupMode): string {
   return `${deckId}:${mode}`;
+}
+
+function otherMode(mode: GroupMode): GroupMode {
+  return mode === "async" ? "sync" : "async";
 }
 
 function buildTargetPath(
@@ -61,10 +73,29 @@ function persistPlaySession(
   writeBrowserCookie(groupSessionCookieName(groupId), sessionToken);
 }
 
+function buildHandoff(
+  data: CreateGroupResponse,
+  deckId: string,
+  mode: GroupMode,
+  clientId: string,
+  targetPath: string
+): PlayHandoff {
+  return {
+    groupId: data.groupId,
+    deckId,
+    mode,
+    clientId,
+    sessionToken: data.sessionToken,
+    targetPath,
+    initialState: data.initialState,
+    createdAt: Date.now(),
+  };
+}
+
 async function createPlaySession(
   deckId: string,
   mode: GroupMode
-): Promise<PlayStartReady> {
+): Promise<PlayStartPayload> {
   const clientId = getClientId();
   const data: CreateGroupResponse = await createGroupRequest({
     deckId,
@@ -82,24 +113,17 @@ async function createPlaySession(
     data.sessionToken
   );
 
-  savePlayHandoff({
-    groupId: data.groupId,
-    deckId,
-    mode,
-    clientId,
-    sessionToken: data.sessionToken,
-    targetPath,
-    initialState: data.initialState,
-    createdAt: Date.now(),
-  });
-
   return {
     groupId: data.groupId,
     targetPath,
+    handoff: buildHandoff(data, deckId, mode, clientId, targetPath),
   };
 }
 
-function trackReady(key: string, promise: Promise<PlayStartReady>): Promise<PlayStartReady> {
+function trackReady(
+  key: string,
+  promise: Promise<PlayStartPayload>
+): Promise<PlayStartPayload> {
   return promise.then((ready) => {
     const entry = cache.get(key);
     if (entry) entry.ready = ready;
@@ -109,6 +133,21 @@ function trackReady(key: string, promise: Promise<PlayStartReady>): Promise<Play
 
 function isFresh(entry: CacheEntry): boolean {
   return Date.now() - entry.createdAt < CACHE_TTL_MS;
+}
+
+/** prefetch만으로는 handoff를 쓰지 않음 — 클릭(consume) 시에만 반영 */
+function commitPlayStart(payload: PlayStartPayload): PlayStartReady {
+  clearPlayHandoff();
+  savePlayHandoff(payload.handoff);
+  persistPlaySession(
+    payload.groupId,
+    payload.handoff.clientId,
+    payload.handoff.sessionToken
+  );
+  return {
+    groupId: payload.groupId,
+    targetPath: payload.targetPath,
+  };
 }
 
 /** 터치/호버 시 미리 그룹 생성 — 클릭 시 즉시 이동 */
@@ -132,7 +171,10 @@ export function getCachedPlayStart(
   const key = cacheKey(deckId, mode);
   const entry = cache.get(key);
   if (!entry || !isFresh(entry) || !entry.ready) return null;
-  return entry.ready;
+
+  cache.delete(key);
+  cache.delete(cacheKey(deckId, otherMode(mode)));
+  return commitPlayStart(entry.ready);
 }
 
 export async function resolvePlayStart(
@@ -142,13 +184,17 @@ export async function resolvePlayStart(
   const key = cacheKey(deckId, mode);
   const existing = cache.get(key);
 
+  cache.delete(cacheKey(deckId, otherMode(mode)));
+
   if (existing && isFresh(existing)) {
     cache.delete(key);
-    return existing.promise;
+    const payload = await existing.promise;
+    return commitPlayStart(payload);
   }
 
   cache.delete(key);
-  return createPlaySession(deckId, mode);
+  const payload = await createPlaySession(deckId, mode);
+  return commitPlayStart(payload);
 }
 
 export function clearPlayStartCache(deckId?: string): void {

@@ -63,17 +63,17 @@ export function GroupPlayClientEntry({
   >(null);
 
   useEffect(() => {
-    if (latchedEntryRef.current) return;
-
     const credentials = resolvePlaySessionCredentials(groupId, sid, st);
     if (!credentials) {
-      setFallbackError("missing");
+      if (!latchedEntryRef.current) setFallbackError("missing");
       return;
     }
 
     const { clientId, sessionToken } = credentials;
     setClientId(clientId);
     saveGroupSessionToken(groupId, sessionToken);
+
+    if (latchedEntryRef.current) return;
 
     let cancelled = false;
 

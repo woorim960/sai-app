@@ -48,19 +48,20 @@ export function useDeckPlayStart({ deckId, isLocked }: UseDeckPlayStartOptions) 
 
       navigatingRef.current = true;
 
-      const cached = getCachedPlayStart(deckId, mode);
-      if (cached) {
-        navigateToPlay(cached.targetPath);
-        return true;
-      }
-
       try {
+        const cached = getCachedPlayStart(deckId, mode);
+        if (cached) {
+          navigateToPlay(cached.targetPath);
+          return true;
+        }
+
         const ready = await resolvePlayStart(deckId, mode);
         navigateToPlay(ready.targetPath);
         return true;
       } catch {
-        navigatingRef.current = false;
         return false;
+      } finally {
+        navigatingRef.current = false;
       }
     },
     [deckId, isLocked, navigateToPlay]
