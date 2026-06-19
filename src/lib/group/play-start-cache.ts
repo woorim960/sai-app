@@ -163,6 +163,16 @@ export function prefetchPlayStart(deckId: string, mode: GroupMode): void {
   });
 }
 
+/** prefetch 완료 여부만 확인 (캐시 소비 없음) */
+export function peekCachedPlayStart(
+  deckId: string,
+  mode: GroupMode
+): boolean {
+  const key = cacheKey(deckId, mode);
+  const entry = cache.get(key);
+  return Boolean(entry && isFresh(entry) && entry.ready);
+}
+
 /** prefetch 완료 시 클릭 즉시 이동 (await 없음) */
 export function getCachedPlayStart(
   deckId: string,

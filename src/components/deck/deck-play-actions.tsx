@@ -6,7 +6,7 @@ import { ChevronRight, Loader2 } from "lucide-react";
 import type { Deck } from "@/lib/data";
 import type { GroupMode } from "@/lib/group/types";
 import { useDeckPlayStart } from "@/lib/hooks/use-deck-play-start";
-import { getCachedPlayStart } from "@/lib/group/play-start-cache";
+import { peekCachedPlayStart } from "@/lib/group/play-start-cache";
 import { cn } from "@/lib/utils";
 
 type DeckPlayActionsProps = {
@@ -89,7 +89,7 @@ export function DeckPlayActions({ deck, isLocked }: DeckPlayActionsProps) {
     if (isLocked || startingMode) return;
 
     setStartError("");
-    const isInstant = Boolean(getCachedPlayStart(deck.id, mode));
+    const isInstant = peekCachedPlayStart(deck.id, mode);
     if (!isInstant) setStartingMode(mode);
 
     void startPlay(mode).then((navigated) => {
