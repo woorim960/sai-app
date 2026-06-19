@@ -7,7 +7,10 @@ import { RouteFallback } from "@/components/layout/route-fallback";
 import { getPlayDeckById } from "@/lib/data/play-content";
 import { getGroupExpiredFallback } from "@/lib/group/group-access";
 import { pollGroupState } from "@/lib/group/poll-group-state";
-import { readPlayHandoff } from "@/lib/group/play-handoff";
+import {
+  readPlayHandoff,
+  resolvePlaySessionCredentials,
+} from "@/lib/group/play-handoff";
 import { saveGroupSessionToken } from "@/lib/group/session-storage";
 import { setClientId } from "@/lib/client-id";
 import { useInstantLobbyEntry } from "@/lib/hooks/use-instant-play-entry";
@@ -44,13 +47,13 @@ export function RoomLobbyClientEntry({
   useEffect(() => {
     if (latchedRef.current) return;
 
-    const clientId = sid?.trim();
-    const sessionToken = st?.trim();
-    if (!clientId || !sessionToken) {
+    const credentials = resolvePlaySessionCredentials(groupId, sid, st);
+    if (!credentials) {
       setError("missing");
       return;
     }
 
+    const { clientId, sessionToken } = credentials;
     setClientId(clientId);
     saveGroupSessionToken(groupId, sessionToken);
 

@@ -12,7 +12,7 @@ import {
 import { getPlayAccessFallback } from "@/lib/deck-access";
 import { getGroupExpiredFallback } from "@/lib/group/group-access";
 import { pollGroupState } from "@/lib/group/poll-group-state";
-import { readPlayHandoff } from "@/lib/group/play-handoff";
+import { readPlayHandoff, resolvePlaySessionCredentials } from "@/lib/group/play-handoff";
 import { buildTrustedPlayBootstrap } from "@/lib/group/play-bootstrap";
 import { saveGroupSessionToken } from "@/lib/group/session-storage";
 import { setClientId } from "@/lib/client-id";
@@ -65,13 +65,13 @@ export function GroupPlayClientEntry({
   useEffect(() => {
     if (latchedEntryRef.current) return;
 
-    const clientId = sid?.trim();
-    const sessionToken = st?.trim();
-    if (!clientId || !sessionToken) {
+    const credentials = resolvePlaySessionCredentials(groupId, sid, st);
+    if (!credentials) {
       setFallbackError("missing");
       return;
     }
 
+    const { clientId, sessionToken } = credentials;
     setClientId(clientId);
     saveGroupSessionToken(groupId, sessionToken);
 
@@ -131,7 +131,7 @@ export function GroupPlayClientEntry({
     return (
       <RouteFallback
         title="플레이를 찾을 수 없어요"
-        description="덱 상세에서 다시 시작해주세요."
+        description="초대 링크에서 다시 참여하거나, 덱 상세에서 새로 시작해주세요."
         primaryHref="/home"
         primaryLabel="홈으로"
       />

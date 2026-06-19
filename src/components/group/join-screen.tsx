@@ -12,6 +12,11 @@ import {
   setDisplayName,
 } from "@/lib/client-id";
 import { joinGroupRequest } from "@/lib/group/api-client";
+import {
+  appendPlayBootstrap,
+  saveJoinPlayHandoff,
+} from "@/lib/group/play-handoff";
+import { getGroupSessionToken } from "@/lib/group/session-storage";
 import { getParticipant } from "@/lib/group/result-helpers";
 import type { GroupState } from "@/lib/group/types";
 
@@ -42,6 +47,36 @@ export function JoinScreen({
 
   const isFinished = initialState.group.status === "finished";
 
+  const navigateWithSession = (
+    path: string,
+    state: GroupState,
+    mode: "push" | "replace" = "push"
+  ) => {
+    if (!clientId) return;
+
+    const sessionToken = getGroupSessionToken(groupId);
+    const target =
+      sessionToken != null
+        ? appendPlayBootstrap(path, clientId, sessionToken)
+        : path;
+
+    if (sessionToken) {
+      saveJoinPlayHandoff({
+        groupId,
+        state,
+        clientId,
+        sessionToken,
+        targetPath: path,
+      });
+    }
+
+    if (mode === "replace") {
+      router.replace(target);
+      return;
+    }
+    router.push(target);
+  };
+
   useEffect(() => {
     setName(defaultName);
   }, [defaultName]);
@@ -61,14 +96,14 @@ export function JoinScreen({
 
     if (initialState.group.mode === "sync") {
       if (initialState.group.status === "playing") {
-        router.replace(`/room/${groupId}/play`);
+        navigateWithSession(`/room/${groupId}/play`, initialState, "replace");
         return;
       }
-      router.replace(lobbyPath ?? `/room/${groupId}`);
+      navigateWithSession(lobbyPath ?? `/room/${groupId}`, initialState, "replace");
       return;
     }
 
-    router.replace(playPath);
+    navigateWithSession(playPath, initialState, "replace");
   }, [
     clientId,
     groupId,
@@ -102,11 +137,11 @@ export function JoinScreen({
       });
 
       if (state.group.mode === "sync") {
-        router.push(lobbyPath ?? `/room/${groupId}`);
+        navigateWithSession(lobbyPath ?? `/room/${groupId}`, state);
         return;
       }
 
-      router.push(playPath);
+      navigateWithSession(playPath, state);
     } catch {
       setError(
         isFinished
